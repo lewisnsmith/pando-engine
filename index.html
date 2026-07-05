@@ -680,8 +680,9 @@
     <div class="dev-section">
       <h3>Accepted routes and verifier notes</h3>
       <p>
-        The verifier accepts several route trees for each puzzle. Heat compares each entry
-        against the closest accepted word for that slot.
+        The verifier accepts several route trees for each puzzle. Heat uses a small
+        modified GLoVe-style model built from routes, clues, and endpoint co-occurrence,
+        then compares each entry against the closest bridge words for that slot.
       </p>
       <table>
         <thead>
@@ -701,8 +702,8 @@
       <p>
         Multiple verification trees are better for playability here. A single route makes
         good associative answers fail for reasons the player cannot infer. The current
-        verifier accepts parallel routes and scores heat by slot, which keeps the puzzle
-        directed without making it one-answer brittle.
+        verifier accepts parallel routes and scores heat by slot using semantic likeness,
+        which keeps the puzzle directed without making it one-answer brittle.
       </p>
       <p>
         Cryptography is not necessary for this local raw HTML version. It could help later
@@ -927,6 +928,19 @@
     const winNewPuzzle = document.querySelector("#win-new-puzzle");
     const confettiMount = document.querySelector("#confetti");
 
+    const STOP_WORDS = new Set([
+      "a",
+      "an",
+      "and",
+      "for",
+      "from",
+      "of",
+      "or",
+      "the",
+      "to",
+      "where"
+    ]);
+
     function normalize(value) {
       return value.trim().toLowerCase().replace(/\s+/g, " ");
     }
@@ -938,6 +952,93 @@
     function slotAnswers(puzzle, slotIndex) {
       return unique(puzzle.routes.map((route) => route[slotIndex]));
     }
+
+    function tokenizeText(value) {
+      return normalize(value)
+        .replace(/[^a-z0-9 ]/g, " ")
+        .split(" ")
+        .filter((token) => token && !STOP_WORDS.has(token));
+    }
+
+    function addWeightedPair(matrix, source, context, weight) {
+      const sourceWord = normalize(source);
+      const contextWord = normalize(context);
+
+      if (!sourceWord || !contextWord || sourceWord === contextWord) {
+        return;
+      }
+
+      if (!matrix.has(sourceWord)) {
+        matrix.set(sourceWord, new Map());
+      }
+
+      const row = matrix.get(sourceWord);
+      row.set(contextWord, (row.get(contextWord) || 0) + weight);
+    }
+
+    function addContextWindow(matrix, words, baseWeight) {
+      const cleanWords = words.map(normalize).filter(Boolean);
+
+      cleanWords.forEach((word, index) => {
+        cleanWords.forEach((context, contextIndex) => {
+          if (index === contextIndex) {
+            return;
+          }
+
+          addWeightedPair(matrix, word, context, baseWeight / Math.abs(index - contextIndex));
+        });
+      });
+    }
+
+    function addSemanticClique(matrix, words, weight) {
+      const cleanWords = unique(words.map(normalize).filter(Boolean));
+
+      cleanWords.forEach((word) => {
+        cleanWords.forEach((context) => addWeightedPair(matrix, word, context, weight));
+      });
+    }
+
+    function buildModifiedGloveModel(items) {
+      const matrix = new Map();
+
+      items.forEach((puzzle) => {
+        puzzle.routes.forEach((route) => {
+          addContextWindow(matrix, [puzzle.start, ...route, puzzle.end], 4);
+        });
+
+        puzzle.clues.forEach((clue, index) => {
+          const slotWords = slotAnswers(puzzle, index);
+          const clueWords = unique([
+            ...slotWords,
+            ...clue.related,
+            ...tokenizeText(clue.category),
+            ...tokenizeText(puzzle.prompt)
+          ]);
+
+          addSemanticClique(matrix, clueWords, 1.4);
+          addContextWindow(matrix, [puzzle.start, ...slotWords, puzzle.end], 0.9);
+        });
+      });
+
+      const vectors = new Map();
+
+      matrix.forEach((row, word) => {
+        const vector = new Map();
+
+        row.forEach((count, context) => {
+          vector.set(context, Math.log1p(count));
+        });
+
+        vectors.set(word, vector);
+      });
+
+      return {
+        vectors,
+        vocabulary: Array.from(vectors.keys())
+      };
+    }
+
+    const semanticModel = buildModifiedGloveModel([...puzzles, ...pocTrials]);
 
     function levenshtein(a, b) {
       const rows = Array.from({ length: a.length + 1 }, () => []);
@@ -977,29 +1078,145 @@
       return Math.max(0, 1 - distance / Math.max(a.length, b.length));
     }
 
-    function wordHeat(input, puzzle, slotIndex) {
-      const guess = normalize(input);
+    function addScaledVector(target, vector, scale) {
+      vector.forEach((value, key) => {
+        target.set(key, (target.get(key) || 0) + value * scale);
+      });
+    }
 
-      if (!guess) {
+    function averageVectors(items) {
+      const output = new Map();
+      let totalWeight = 0;
+
+      items.forEach((item) => {
+        if (!item.vector || item.weight <= 0) {
+          return;
+        }
+
+        addScaledVector(output, item.vector, item.weight);
+        totalWeight += item.weight;
+      });
+
+      if (totalWeight === 0) {
+        return null;
+      }
+
+      output.forEach((value, key) => output.set(key, value / totalWeight));
+      return output;
+    }
+
+    function semanticVector(word) {
+      const cleanWord = normalize(word).replace(/[^a-z0-9 ]/g, " ");
+
+      if (semanticModel.vectors.has(cleanWord)) {
+        return semanticModel.vectors.get(cleanWord);
+      }
+
+      const tokenVectors = tokenizeText(cleanWord)
+        .map((token) => semanticModel.vectors.get(token))
+        .filter(Boolean)
+        .map((vector) => ({ vector, weight: 1 }));
+
+      if (tokenVectors.length > 0) {
+        return averageVectors(tokenVectors);
+      }
+
+      const lexicalNeighbors = semanticModel.vocabulary
+        .map((candidate) => ({
+          vector: semanticModel.vectors.get(candidate),
+          weight: stringSimilarity(cleanWord, candidate)
+        }))
+        .filter((item) => item.weight >= 0.72);
+
+      return averageVectors(lexicalNeighbors);
+    }
+
+    function cosineSimilarity(a, b) {
+      if (!a || !b) {
         return 0;
       }
 
-      const acceptedWords = slotAnswers(puzzle, slotIndex);
+      let dot = 0;
+      let aMagnitude = 0;
+      let bMagnitude = 0;
+
+      a.forEach((value, key) => {
+        dot += value * (b.get(key) || 0);
+        aMagnitude += value * value;
+      });
+
+      b.forEach((value) => {
+        bMagnitude += value * value;
+      });
+
+      if (aMagnitude === 0 || bMagnitude === 0) {
+        return 0;
+      }
+
+      return Math.max(0, dot / Math.sqrt(aMagnitude * bMagnitude));
+    }
+
+    function likenessToTargets(guess, targets) {
+      const guessVector = semanticVector(guess);
+      let best = { score: 0, word: "" };
+
+      unique(targets.map(normalize)).forEach((target) => {
+        const targetVector = semanticVector(target);
+        const semanticScore = cosineSimilarity(guessVector, targetVector);
+        const lexicalScore = stringSimilarity(guess, target) * 0.72;
+        const score = Math.max(semanticScore, lexicalScore);
+
+        if (score > best.score) {
+          best = { score, word: target };
+        }
+      });
+
+      return best;
+    }
+
+    function bridgeLikeness(guess, puzzle, slotIndex) {
+      const leftWords = slotIndex === 0 ? [puzzle.start] : slotAnswers(puzzle, slotIndex - 1);
+      const rightWords = slotIndex === puzzle.tier - 1 ? [puzzle.end] : slotAnswers(puzzle, slotIndex + 1);
+      const left = likenessToTargets(guess, leftWords).score;
+      const right = likenessToTargets(guess, rightWords).score;
+
+      return Math.sqrt(left * right);
+    }
+
+    function wordLikeness(input, puzzle, slotIndex) {
+      const guess = normalize(input);
+
+      if (!guess) {
+        return { heat: 0, nearest: "", semantic: 0, bridge: 0 };
+      }
+
+      const acceptedWords = slotAnswers(puzzle, slotIndex).map(normalize);
 
       if (acceptedWords.includes(guess)) {
-        return 100;
+        return { heat: 100, nearest: guess, semantic: 1, bridge: 1 };
       }
 
       const clue = puzzle.clues[slotIndex];
       const related = clue.related.map(normalize);
-      const relatedScore = related.includes(guess) ? 76 : 0;
-      const similarityScore = Math.max(
-        ...acceptedWords.map((answer) => Math.round(stringSimilarity(guess, answer) * 64))
-      );
-      const tokenScore = related.some((word) => word.includes(guess) || guess.includes(word)) ? 58 : 0;
-      const categoryScore = clue.category.split(" ").some((token) => guess.includes(token)) ? 40 : 0;
+      const targets = unique([...acceptedWords, ...related]);
+      const target = likenessToTargets(guess, targets);
+      const bridge = bridgeLikeness(guess, puzzle, slotIndex);
+      const semanticScore = Math.round(target.score * 88);
+      const bridgeScore = Math.round(bridge * 78);
+      const relatedScore = related.includes(guess) ? 82 : 0;
+      const categoryScore = tokenizeText(clue.category).some((token) => guess.includes(token)) ? 42 : 0;
+      const heat = Math.min(99, Math.max(10, relatedScore, semanticScore, bridgeScore, categoryScore));
 
-      return Math.min(99, Math.max(10, relatedScore, similarityScore, tokenScore, categoryScore));
+      return {
+        heat,
+        nearest: target.word,
+        semantic: target.score,
+        bridge
+      };
+    }
+
+    function wordHeat(input, puzzle, slotIndex) {
+      return wordLikeness(input, puzzle, slotIndex).heat;
     }
 
     function isAcceptedRoute(puzzle, entries) {
