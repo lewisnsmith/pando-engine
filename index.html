@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sequence</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --cold: #bfe2ff;
+      --warm: #ffd36a;
+      --hot: #ff6b4a;
+      --right: #50b878;
+      --wrong: #d9d9d9;
+      --ink: #111;
+      --muted: #555;
+      --line: #c8c8c8;
+      --paper: #fff;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 24px;
+      max-width: 900px;
+      color: var(--ink);
+      background: var(--paper);
+      font: 16px/1.45 Times, "Times New Roman", serif;
+    }
+
+    h1,
+    h2,
+    h3 {
+      margin: 0 0 12px;
+      font-weight: 700;
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    button {
+      padding: 3px 8px;
+      cursor: pointer;
+    }
+
+    fieldset {
+      margin: 0 0 18px;
+      padding: 12px;
+      border: 1px solid var(--line);
+    }
+
+    legend {
+      padding: 0 6px;
+      font-weight: 700;
+    }
+
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 12px;
+      align-items: center;
+      margin: 8px 0;
+    }
+
+    .endpoints {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 10px;
+      align-items: center;
+      margin: 18px 0;
+      font-size: 24px;
+    }
+
+    .endpoint {
+      padding: 8px;
+      border: 1px solid var(--ink);
+      text-align: center;
+      text-transform: uppercase;
+    }
+
+    .slots {
+      display: grid;
+      gap: 10px;
+      margin: 18px 0;
+    }
+
+    .slot {
+      display: grid;
+      grid-template-columns: 72px minmax(160px, 1fr) minmax(140px, auto) minmax(120px, 1fr);
+      gap: 8px;
+      align-items: center;
+    }
+
+    .slot input {
+      min-width: 0;
+      padding: 5px 7px;
+      border: 1px solid var(--line);
+    }
+
+    .meter {
+      height: 22px;
+      border: 1px solid var(--ink);
+      background: linear-gradient(90deg, var(--cold), var(--warm), var(--hot));
+      position: relative;
+    }
+
+    .meter::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      width: calc(100% - var(--heat, 0%));
+      margin-left: var(--heat, 0%);
+      background: rgba(255, 255, 255, 0.78);
+      border-left: 1px solid rgba(0, 0, 0, 0.35);
+    }
+
+    .heat-label {
+      font-variant-numeric: tabular-nums;
+    }
+
+    .result {
+      min-height: 28px;
+      margin: 12px 0;
+      font-weight: 700;
+    }
+
+    .bridge-map {
+      margin: 12px 0 18px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      background: #fafafa;
+    }
+
+    .bridge-title {
+      margin-bottom: 8px;
+      font-weight: 700;
+    }
+
+    .bridge-path {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .bridge-node {
+      padding: 3px 7px;
+      border: 1px solid var(--ink);
+      background: var(--paper);
+      font-variant-numeric: tabular-nums;
+    }
+
+    details,
+    .notes {
+      margin-top: 18px;
+      padding-top: 12px;
+      border-top: 1px solid var(--line);
+    }
+
+    summary {
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .right {
+      color: var(--right);
+    }
+
+    .wrong {
+      color: #9d1b1b;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 10px;
+    }
+
+    th,
+    td {
+      border: 1px solid var(--line);
+      padding: 5px 7px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    @media (max-width: 680px) {
+      body {
+        margin: 14px;
+      }
+
+      .endpoints {
+        grid-template-columns: 1fr;
+        font-size: 20px;
+      }
+
+      .slot {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>Sequence</h1>
+
+  <fieldset>
+    <legend>Game</legend>
+    <div class="row">
+      <label for="tier">Tier</label>
+      <select id="tier">
+        <option value="1">Tier 1: one middle word</option>
+        <option value="2">Tier 2: two middle words</option>
+        <option value="3">Tier 3: three middle words</option>
+      </select>
+      <button type="button" id="new-puzzle">New puzzle</button>
+      <button type="submit" form="sequence-form" id="check">Check sequence</button>
+      <button type="button" id="reveal">Reveal one valid route</button>
+    </div>
+    <p id="prompt" class="muted"></p>
+  </fieldset>
+
+  <fieldset>
+    <legend>Proof of Concept Trials</legend>
+    <div class="row">
+      <label for="trial">Trial</label>
+      <select id="trial">
+        <option value="multi-route">POC A: multiple verification trees</option>
+        <option value="single-route">POC B: single verified route</option>
+      </select>
+      <button type="button" id="load-trial">Load trial</button>
+    </div>
+    <p id="trial-note" class="muted">
+      POC A tests forgiving associative play. POC B tests a stricter answer key using the same tier depth.
+    </p>
+  </fieldset>
+
+  <main>
+    <div class="endpoints" aria-live="polite">
+      <div class="endpoint" id="start-word"></div>
+      <div>to</div>
+      <div class="endpoint" id="end-word"></div>
+    </div>
+
+    <form id="sequence-form">
+      <div class="slots" id="slots"></div>
+    </form>
+
+    <div class="result" id="result" aria-live="polite"></div>
+
+    <div class="bridge-map" id="bridge-map" aria-live="polite"></div>
+
+    <details>
+      <summary>Accepted routes and verifier notes</summary>
+      <p class="muted">
+        The verifier accepts several route trees for each puzzle. Heat uses a small
+        modified GLoVe-style model built from routes, clues, and endpoint co-occurrence,
+        then compares each entry against the closest bridge words for that slot.
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th>Tier</th>
+            <th>Start</th>
+            <th>End</th>
+            <th>Example accepted routes</th>
+          </tr>
+        </thead>
+        <tbody id="route-table"></tbody>
+      </table>
+    </details>
+
+    <section class="notes">
+      <h2>Design Notes</h2>
+      <p>
+        Multiple verification trees are better for playability here. A single route makes
+        good associative answers fail for reasons the player cannot infer. The current
+        verifier accepts parallel routes and scores heat by slot using semantic likeness,
+        which keeps the puzzle directed without making it one-answer brittle.
+      </p>
+      <p>
+        Cryptography is not necessary for this local raw HTML version. It could help later
+        for daily puzzle integrity by hashing accepted routes or signing server-issued
+        puzzles, but it would make the present heat-map feedback worse because the browser
+        needs useful clue data to score guesses.
+      </p>
+    </section>
+  </main>
+
+  <script>
+    const puzzles = [
+      {
+        tier: 1,
+        start: "seed",
+        end: "forest",
+        prompt: "Connect a small beginning to a large living system.",
+        routes: [
+          ["tree"],
+          ["plant"],
+          ["grove"]
+        ],
+        clues: [
+          {
+            category: "living thing",
+            related: ["tree", "plant", "sprout", "sapling", "grove", "wood"]
+          }
+        ]
+      },
+      {
+        tier: 1,
+        start: "spark",
+        end: "signal",
+        prompt: "Connect an ignition point to transmitted information.",
+        routes: [
+          ["fire"],
+          ["flash"],
+          ["light"]
+        ],
+        clues: [
+          {
+            category: "visible energy",
+            related: ["fire", "flash", "light", "flare", "glow", "beam"]
+          }
+        ]
+      },
+      {
+        tier: 2,
+        start: "paper",
+        end: "library",
+        prompt: "Connect a material to a place where organized knowledge lives.",
+        routes: [
+          ["book", "shelf"],
+          ["page", "catalog"],
+          ["manuscript", "archive"]
+        ],
+        clues: [
+          {
+            category: "written object",
+            related: ["book", "page", "manuscript", "letter", "journal", "text"]
+          },
+          {
+            category: "organized collection",
+            related: ["shelf", "catalog", "archive", "index", "stack", "record"]
+          }
+        ]
+      },
+      {
+        tier: 2,
+        start: "rain",
+        end: "harvest",
+        prompt: "Connect weather to a gathered crop.",
+        routes: [
+          ["soil", "crop"],
+          ["field", "grain"],
+          ["water", "growth"]
+        ],
+        clues: [
+          {
+            category: "growing place or input",
+            related: ["soil", "field", "water", "mud", "farm", "irrigation"]
+          },
+          {
+            category: "plant result",
+            related: ["crop", "grain", "growth", "wheat", "yield", "produce"]
+          }
+        ]
+      },
+      {
+        tier: 3,
+        start: "idea",
+        end: "business",
+        prompt: "Connect a thought to an operating venture.",
+        routes: [
+          ["plan", "product", "market"],
+          ["sketch", "prototype", "customer"],
+          ["concept", "service", "sale"]
+        ],
+        clues: [
+          {
+            category: "early form",
+            related: ["plan", "sketch", "concept", "draft", "proposal", "model"]
+          },
+          {
+            category: "offer",
+            related: ["product", "prototype", "service", "tool", "platform", "package"]
+          },
+          {
+            category: "commercial setting",
+            related: ["market", "customer", "sale", "buyer", "store", "demand"]
+          }
+        ]
+      },
+      {
+        tier: 3,
+        start: "stone",
+        end: "city",
+        prompt: "Connect raw material to a dense built place.",
+        routes: [
+          ["brick", "wall", "street"],
+          ["quarry", "building", "block"],
+          ["cement", "house", "neighborhood"]
+        ],
+        clues: [
+          {
+            category: "building material",
+            related: ["brick", "quarry", "cement", "rock", "block", "slab"]
+          },
+          {
+            category: "structure",
+            related: ["wall", "building", "house", "tower", "road", "bridge"]
+          },
+          {
+            category: "urban part",
+            related: ["street", "block", "neighborhood", "avenue", "district", "square"]
+          }
+        ]
+      }
+    ];
+
+    const pocTrials = [
+      {
+        id: "multi-route",
+        tier: 3,
+        start: "idea",
+        end: "business",
+        prompt: "POC A: a forgiving verifier accepts several plausible ways to build from idea to business.",
+        verifierNote: "Multiple route trees accepted. This is the recommended playability model.",
+        routes: [
+          ["plan", "product", "market"],
+          ["sketch", "prototype", "customer"],
+          ["concept", "service", "sale"],
+          ["pitch", "team", "revenue"]
+        ],
+        clues: [
+          {
+            category: "early form",
+            related: ["plan", "sketch", "concept", "pitch", "draft", "proposal", "model"]
+          },
+          {
+            category: "offer or builder",
+            related: ["product", "prototype", "service", "team", "tool", "platform", "package"]
+          },
+          {
+            category: "commercial outcome",
+            related: ["market", "customer", "sale", "revenue", "buyer", "store", "demand"]
+          }
+        ]
+      },
+      {
+        id: "single-route",
+        tier: 3,
+        start: "idea",
+        end: "business",
+        prompt: "POC B: a strict verifier accepts one route only, even when nearby guesses are semantically reasonable.",
+        verifierNote: "Only one route accepted. Use this to feel how brittle a one-answer puzzle becomes.",
+        routes: [
+          ["plan", "product", "market"]
+        ],
+        clues: [
+          {
+            category: "early form",
+            related: ["plan", "sketch", "concept", "pitch", "draft", "proposal", "model"]
+          },
+          {
+            category: "offer",
+            related: ["product", "prototype", "service", "tool", "platform", "package"]
+          },
+          {
+            category: "commercial setting",
+            related: ["market", "customer", "sale", "revenue", "buyer", "store", "demand"]
+          }
+        ]
+      }
+    ];
+
+    const defaultTrialNote = "POC A tests forgiving associative play. POC B tests a stricter answer key using the same tier depth.";
+
+    let currentPuzzle = null;
+    let currentPuzzleIndex = -1;
+
+    const tierSelect = document.querySelector("#tier");
+    const trialSelect = document.querySelector("#trial");
+    const newPuzzleButton = document.querySelector("#new-puzzle");
+    const loadTrialButton = document.querySelector("#load-trial");
+    const revealButton = document.querySelector("#reveal");
+    const promptText = document.querySelector("#prompt");
+    const trialNote = document.querySelector("#trial-note");
+    const startWord = document.querySelector("#start-word");
+    const endWord = document.querySelector("#end-word");
+    const slots = document.querySelector("#slots");
+    const result = document.querySelector("#result");
+    const bridgeMap = document.querySelector("#bridge-map");
+    const routeTable = document.querySelector("#route-table");
+
+    const STOP_WORDS = new Set([
+      "a",
+      "an",
+      "and",
+      "for",
+      "from",
+      "of",
+      "or",
+      "the",
+      "to",
+      "where"
+    ]);
+
+    function normalize(value) {
+      return value.trim().toLowerCase().replace(/\s+/g, " ");
+    }
+
+    function unique(values) {
+      return Array.from(new Set(values));
+    }
+
+    function tokenizeText(value) {
+      return normalize(value)
+        .replace(/[^a-z0-9 ]/g, " ")
+        .split(" ")
+        .filter((token) => token && !STOP_WORDS.has(token));
+    }
+
+    function slotAnswers(puzzle, slotIndex) {
+      return unique(puzzle.routes.map((route) => route[slotIndex]));
+    }
+
+    function addWeightedPair(matrix, source, context, weight) {
+      const sourceWord = normalize(source);
+      const contextWord = normalize(context);
+
+      if (!sourceWord || !contextWord || sourceWord === contextWord) {
+        return;
+      }
+
+      if (!matrix.has(sourceWord)) {
+        matrix.set(sourceWord, new Map());
+      }
+
+      const row = matrix.get(sourceWord);
+      row.set(contextWord, (row.get(contextWord) || 0) + weight);
+    }
+
+    function addContextWindow(matrix, words, baseWeight) {
+      const cleanWords = words.map(normalize).filter(Boolean);
+
+      cleanWords.forEach((word, index) => {
+        cleanWords.forEach((context, contextIndex) => {
+          if (index === contextIndex) {
+            return;
+          }
+
+          addWeightedPair(matrix, word, context, baseWeight / Math.abs(index - contextIndex));
+        });
+      });
+    }
+
+    function addSemanticClique(matrix, words, weight) {
+      const cleanWords = unique(words.map(normalize).filter(Boolean));
+
+      cleanWords.forEach((word) => {
+        cleanWords.forEach((context) => addWeightedPair(matrix, word, context, weight));
+      });
+    }
+
+    function buildModifiedGloveModel(items) {
+      const matrix = new Map();
+
+      items.forEach((puzzle) => {
+        puzzle.routes.forEach((route) => {
+          addContextWindow(matrix, [puzzle.start, ...route, puzzle.end], 4);
+        });
+
+        puzzle.clues.forEach((clue, index) => {
+          const slotWords = slotAnswers(puzzle, index);
+          const clueWords = unique([
+            ...slotWords,
+            ...clue.related,
+            ...tokenizeText(clue.category),
+            ...tokenizeText(puzzle.prompt)
+          ]);
+
+          addSemanticClique(matrix, clueWords, 1.4);
+          addContextWindow(matrix, [puzzle.start, ...slotWords, puzzle.end], 0.9);
+        });
+      });
+
+      const vectors = new Map();
+
+      matrix.forEach((row, word) => {
+        const vector = new Map();
+
+        row.forEach((count, context) => {
+          vector.set(context, Math.log1p(count));
+        });
+
+        vectors.set(word, vector);
+      });
+
+      return {
+        vectors,
+        vocabulary: Array.from(vectors.keys())
+      };
+    }
+
+    const semanticModel = buildModifiedGloveModel([...puzzles, ...pocTrials]);
+
+    function levenshtein(a, b) {
+      const rows = Array.from({ length: a.length + 1 }, () => []);
+
+      for (let i = 0; i <= a.length; i += 1) {
+        rows[i][0] = i;
+      }
+
+      for (let j = 0; j <= b.length; j += 1) {
+        rows[0][j] = j;
+      }
+
+      for (let i = 1; i <= a.length; i += 1) {
+        for (let j = 1; j <= b.length; j += 1) {
+          const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+          rows[i][j] = Math.min(
+            rows[i - 1][j] + 1,
+            rows[i][j - 1] + 1,
+            rows[i - 1][j - 1] + cost
+          );
+        }
+      }
+
+      return rows[a.length][b.length];
+    }
+
+    function stringSimilarity(a, b) {
+      if (!a || !b) {
+        return 0;
+      }
+
+      if (a === b) {
+        return 1;
+      }
+
+      const distance = levenshtein(a, b);
+      return Math.max(0, 1 - distance / Math.max(a.length, b.length));
+    }
+
+    function addScaledVector(target, vector, scale) {
+      vector.forEach((value, key) => {
+        target.set(key, (target.get(key) || 0) + value * scale);
+      });
+    }
+
+    function averageVectors(items) {
+      const output = new Map();
+      let totalWeight = 0;
+
+      items.forEach((item) => {
+        if (!item.vector || item.weight <= 0) {
+          return;
+        }
+
+        addScaledVector(output, item.vector, item.weight);
+        totalWeight += item.weight;
+      });
+
+      if (totalWeight === 0) {
+        return null;
+      }
+
+      output.forEach((value, key) => output.set(key, value / totalWeight));
+      return output;
+    }
+
+    function semanticVector(word) {
+      const cleanWord = normalize(word).replace(/[^a-z0-9 ]/g, " ");
+
+      if (semanticModel.vectors.has(cleanWord)) {
+        return semanticModel.vectors.get(cleanWord);
+      }
+
+      const tokenVectors = tokenizeText(cleanWord)
+        .map((token) => semanticModel.vectors.get(token))
+        .filter(Boolean)
+        .map((vector) => ({ vector, weight: 1 }));
+
+      if (tokenVectors.length > 0) {
+        return averageVectors(tokenVectors);
+      }
+
+      const lexicalNeighbors = semanticModel.vocabulary
+        .map((candidate) => ({
+          vector: semanticModel.vectors.get(candidate),
+          weight: stringSimilarity(cleanWord, candidate)
+        }))
+        .filter((item) => item.weight >= 0.72);
+
+      return averageVectors(lexicalNeighbors);
+    }
+
+    function cosineSimilarity(a, b) {
+      if (!a || !b) {
+        return 0;
+      }
+
+      let dot = 0;
+      let aMagnitude = 0;
+      let bMagnitude = 0;
+
+      a.forEach((value, key) => {
+        dot += value * (b.get(key) || 0);
+        aMagnitude += value * value;
+      });
+
+      b.forEach((value) => {
+        bMagnitude += value * value;
+      });
+
+      if (aMagnitude === 0 || bMagnitude === 0) {
+        return 0;
+      }
+
+      return Math.max(0, dot / Math.sqrt(aMagnitude * bMagnitude));
+    }
+
+    function likenessToTargets(guess, targets) {
+      const guessVector = semanticVector(guess);
+      let best = { score: 0, word: "" };
+
+      unique(targets.map(normalize)).forEach((target) => {
+        const targetVector = semanticVector(target);
+        const semanticScore = cosineSimilarity(guessVector, targetVector);
+        const lexicalScore = stringSimilarity(guess, target) * 0.72;
+        const score = Math.max(semanticScore, lexicalScore);
+
+        if (score > best.score) {
+          best = { score, word: target };
+        }
+      });
+
+      return best;
+    }
+
+    function bridgeLikeness(guess, puzzle, slotIndex) {
+      const leftWords = slotIndex === 0 ? [puzzle.start] : slotAnswers(puzzle, slotIndex - 1);
+      const rightWords = slotIndex === puzzle.tier - 1 ? [puzzle.end] : slotAnswers(puzzle, slotIndex + 1);
+      const left = likenessToTargets(guess, leftWords).score;
+      const right = likenessToTargets(guess, rightWords).score;
+
+      return Math.sqrt(left * right);
+    }
+
+    function wordLikeness(input, puzzle, slotIndex) {
+      const guess = normalize(input);
+
+      if (!guess) {
+        return { heat: 0, nearest: "", semantic: 0, bridge: 0 };
+      }
+
+      const acceptedWords = slotAnswers(puzzle, slotIndex).map(normalize);
+
+      if (acceptedWords.includes(guess)) {
+        return { heat: 100, nearest: guess, semantic: 1, bridge: 1 };
+      }
+
+      const clue = puzzle.clues[slotIndex];
+      const related = clue.related.map(normalize);
+      const targets = unique([...acceptedWords, ...related]);
+      const target = likenessToTargets(guess, targets);
+      const bridge = bridgeLikeness(guess, puzzle, slotIndex);
+      const semanticScore = Math.round(target.score * 88);
+      const bridgeScore = Math.round(bridge * 78);
+      const relatedScore = related.includes(guess) ? 82 : 0;
+      const categoryScore = tokenizeText(clue.category).some((token) => guess.includes(token)) ? 42 : 0;
+      const heat = Math.min(99, Math.max(10, relatedScore, semanticScore, bridgeScore, categoryScore));
+
+      return {
+        heat,
+        nearest: target.word,
+        semantic: target.score,
+        bridge
+      };
+    }
+
+    function wordHeat(input, puzzle, slotIndex) {
+      return wordLikeness(input, puzzle, slotIndex).heat;
+    }
+
+    function isAcceptedRoute(puzzle, entries) {
+      const normalizedEntries = entries.map(normalize);
+      return puzzle.routes.some((route) => {
+        return route.every((word, index) => normalize(word) === normalizedEntries[index]);
+      });
+    }
+
+    function renderSlots(puzzle) {
+      slots.innerHTML = "";
+
+      for (let index = 0; index < puzzle.tier; index += 1) {
+        const row = document.createElement("label");
+        row.className = "slot";
+        row.innerHTML = `
+          <span>Word ${index + 1}</span>
+          <input autocomplete="off" data-slot="${index}" aria-label="Word ${index + 1}">
+          <span class="heat-label" data-heat-label="${index}">0% heat</span>
+          <span class="meter" data-meter="${index}" style="--heat: 0%"></span>
+        `;
+        slots.append(row);
+      }
+
+      slots.querySelectorAll("input").forEach((input) => {
+        input.addEventListener("input", updateHeat);
+      });
+    }
+
+    function renderPuzzle(puzzle) {
+      currentPuzzle = puzzle;
+      promptText.textContent = puzzle.verifierNote
+        ? `${puzzle.prompt} ${puzzle.verifierNote}`
+        : puzzle.prompt;
+      startWord.textContent = puzzle.start;
+      endWord.textContent = puzzle.end;
+      result.textContent = "";
+      result.className = "result";
+      renderSlots(puzzle);
+      updateHeat();
+      slots.querySelector("input")?.focus();
+    }
+
+    function renderRouteTable() {
+      routeTable.innerHTML = "";
+
+      [...puzzles, ...pocTrials].forEach((puzzle) => {
+        const row = document.createElement("tr");
+        const routes = puzzle.routes
+          .map((route) => `${puzzle.start} -> ${route.join(" -> ")} -> ${puzzle.end}`)
+          .join("<br>");
+        row.innerHTML = `
+          <td>${puzzle.tier}</td>
+          <td>${puzzle.start}</td>
+          <td>${puzzle.end}</td>
+          <td>${routes}</td>
+        `;
+        routeTable.append(row);
+      });
+    }
+
+    function inputs() {
+      return Array.from(slots.querySelectorAll("input"));
+    }
+
+    function currentEntries() {
+      return inputs().map((input) => input.value);
+    }
+
+    function updateHeat() {
+      inputs().forEach((input, index) => {
+        const likeness = wordLikeness(input.value, currentPuzzle, index);
+        const heat = likeness.heat;
+        const label = slots.querySelector(`[data-heat-label="${index}"]`);
+        const meter = slots.querySelector(`[data-meter="${index}"]`);
+        label.textContent = likeness.nearest ? `${heat}% heat, like ${likeness.nearest}` : `${heat}% heat`;
+        meter.style.setProperty("--heat", `${heat}%`);
+      });
+
+      renderBridgeMap();
+    }
+
+    function appendBridgeNode(parent, text, isMuted = false) {
+      const node = document.createElement("span");
+      node.className = isMuted ? "bridge-node muted" : "bridge-node";
+      node.textContent = text;
+      parent.append(node);
+    }
+
+    function appendBridgeArrow(parent) {
+      const arrow = document.createElement("span");
+      arrow.textContent = "->";
+      parent.append(arrow);
+    }
+
+    function renderBridgeMap() {
+      const entries = currentEntries();
+      const filled = entries.filter((entry) => normalize(entry));
+
+      bridgeMap.innerHTML = "";
+
+      const title = document.createElement("div");
+      title.className = "bridge-title";
+      title.textContent = "GLoVe-like bridge map";
+      bridgeMap.append(title);
+
+      const path = document.createElement("div");
+      path.className = "bridge-path";
+      appendBridgeNode(path, currentPuzzle.start);
+
+      entries.forEach((entry, index) => {
+        appendBridgeArrow(path);
+
+        const cleanEntry = normalize(entry);
+        if (!cleanEntry) {
+          appendBridgeNode(path, `word ${index + 1}`, true);
+          return;
+        }
+
+        appendBridgeNode(path, `${cleanEntry} ${wordHeat(entry, currentPuzzle, index)}%`);
+      });
+
+      appendBridgeArrow(path);
+      appendBridgeNode(path, currentPuzzle.end);
+      bridgeMap.append(path);
+
+      const note = document.createElement("p");
+      note.className = "muted";
+
+      if (filled.length === 0) {
+        note.textContent = "Enter words to see how strongly they sit between the two endpoints.";
+      } else {
+        const averageHeat = Math.round(
+          entries.reduce((sum, entry, index) => sum + wordHeat(entry, currentPuzzle, index), 0) / entries.length
+        );
+        note.textContent = `${averageHeat}% route likeness from log co-occurrence vectors over accepted routes and clue words.`;
+      }
+
+      bridgeMap.append(note);
+    }
+
+    function checkSequence() {
+      const entries = currentEntries();
+
+      if (entries.some((entry) => normalize(entry) === "")) {
+        result.textContent = "Fill every word before checking.";
+        result.className = "result wrong";
+        return;
+      }
+
+      if (isAcceptedRoute(currentPuzzle, entries)) {
+        result.textContent = "Correct sequence.";
+        result.className = "result right";
+      } else {
+        result.textContent = "Not a verified sequence yet. Use the heat to adjust each slot.";
+        result.className = "result wrong";
+      }
+    }
+
+    function revealRoute() {
+      const route = currentPuzzle.routes[0];
+      inputs().forEach((input, index) => {
+        input.value = route[index];
+      });
+      updateHeat();
+      result.textContent = `${currentPuzzle.start} -> ${route.join(" -> ")} -> ${currentPuzzle.end}`;
+      result.className = "result";
+    }
+
+    function pickPuzzle() {
+      const tier = Number(tierSelect.value);
+      const options = puzzles
+        .map((puzzle, index) => ({ puzzle, index }))
+        .filter((item) => item.puzzle.tier === tier);
+      const nextOptions = options.filter((item) => item.index !== currentPuzzleIndex);
+      const pool = nextOptions.length > 0 ? nextOptions : options;
+      const choice = pool[Math.floor(Math.random() * pool.length)];
+      currentPuzzleIndex = choice.index;
+      trialNote.textContent = defaultTrialNote;
+      renderPuzzle(choice.puzzle);
+    }
+
+    function loadTrial() {
+      const trial = pocTrials.find((item) => item.id === trialSelect.value);
+
+      if (!trial) {
+        return;
+      }
+
+      trialNote.textContent = trial.verifierNote;
+      tierSelect.value = String(trial.tier);
+      currentPuzzleIndex = -1;
+      renderPuzzle(trial);
+    }
+
+    tierSelect.addEventListener("change", pickPuzzle);
+    newPuzzleButton.addEventListener("click", pickPuzzle);
+    loadTrialButton.addEventListener("click", loadTrial);
+    revealButton.addEventListener("click", revealRoute);
+    document.querySelector("#sequence-form").addEventListener("submit", (event) => {
+      event.preventDefault();
+      checkSequence();
+    });
+
+    renderRouteTable();
+    pickPuzzle();
+  </script>
+</body>
+</html>
