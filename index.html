@@ -4,108 +4,216 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Sequence</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400&display=swap" rel="stylesheet">
   <style>
     :root {
       color-scheme: light;
-      --cold: #bfe2ff;
-      --warm: #ffd36a;
-      --hot: #ff6b4a;
-      --right: #50b878;
-      --wrong: #d9d9d9;
-      --ink: #111;
-      --muted: #555;
-      --line: #c8c8c8;
-      --paper: #fff;
+      --blue: #2743e6;
+      --blue-ink: #1c31b4;
+      --blue-soft: #eef1ff;
+      --paper: #f7f3ea;
+      --card: #ffffff;
+      --ink: #14203a;
+      --muted: #5b6472;
+      --line: #e5dfd2;
+      --right: #1f8f57;
+      --wrong: #b0331f;
+      /* pastel-rainbow temperature stops: cool -> warm */
+      --heat-cool: #bcd9ff;
+      --heat-low: #bff0d6;
+      --heat-mid: #fff0ab;
+      --heat-warm: #ffc9c1;
+      --grotesk: "Space Grotesk", "Helvetica Neue", Helvetica, Arial, sans-serif;
+      --sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
     }
 
     * {
       box-sizing: border-box;
     }
 
+    html,
     body {
-      margin: 24px;
-      max-width: 900px;
+      min-height: 100%;
+    }
+
+    body {
+      margin: 0;
       color: var(--ink);
       background: var(--paper);
-      font: 16px/1.45 Times, "Times New Roman", serif;
+      font: 400 16px/1.5 var(--sans);
+      -webkit-font-smoothing: antialiased;
     }
 
-    h1,
-    h2,
-    h3 {
-      margin: 0 0 12px;
-      font-weight: 700;
-    }
-
-    button,
-    input,
-    select {
-      font: inherit;
-    }
-
-    button {
-      padding: 3px 8px;
-      cursor: pointer;
-    }
-
-    fieldset {
-      margin: 0 0 18px;
-      padding: 12px;
-      border: 1px solid var(--line);
-    }
-
-    legend {
-      padding: 0 6px;
-      font-weight: 700;
-    }
-
-    .row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px 12px;
+    /* ---------- App bar ---------- */
+    .app-bar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
       align-items: center;
-      margin: 8px 0;
+      gap: 8px;
+      padding: 14px 18px;
+      background: rgba(247, 243, 234, 0.9);
+      backdrop-filter: saturate(1.2) blur(6px);
+      border-bottom: 2px solid var(--blue);
     }
 
+    .app-bar .left {
+      justify-self: start;
+    }
+
+    .app-bar .right {
+      justify-self: end;
+    }
+
+    .wordmark {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      justify-self: center;
+      font-family: var(--grotesk);
+      font-weight: 400;
+      font-size: clamp(20px, 4.5vw, 30px);
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--ink);
+      padding-left: 0.22em; /* optical centering vs letter-spacing */
+    }
+
+    .sun {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--heat-mid);
+      box-shadow: 0 0 0 3px rgba(255, 240, 171, 0.45);
+      flex: none;
+    }
+
+    .icon-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      border: 1.5px solid var(--line);
+      background: var(--card);
+      color: var(--ink);
+      font-family: var(--grotesk);
+      font-size: 18px;
+      line-height: 1;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: border-color 0.15s, background 0.15s;
+    }
+
+    .icon-btn:hover {
+      border-color: var(--blue);
+      background: var(--blue-soft);
+    }
+
+    /* ---------- Layout ---------- */
+    main {
+      max-width: 620px;
+      margin: 0 auto;
+      padding: 28px 18px 60px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: 0 10px 30px rgba(20, 32, 58, 0.06);
+      padding: 26px 24px 28px;
+    }
+
+    .prompt {
+      margin: 0 0 20px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 1.02rem;
+    }
+
+    /* ---------- Chain: START -> slots -> END ---------- */
     .endpoints {
       display: grid;
       grid-template-columns: 1fr auto 1fr;
-      gap: 10px;
+      gap: 12px;
       align-items: center;
-      margin: 18px 0;
-      font-size: 24px;
+      margin-bottom: 22px;
     }
 
     .endpoint {
-      padding: 8px;
-      border: 1px solid var(--ink);
+      padding: 12px 10px;
+      border: 1.5px solid var(--blue);
+      border-radius: 12px;
       text-align: center;
       text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-family: var(--grotesk);
+      font-size: clamp(15px, 3.6vw, 20px);
+      color: var(--blue-ink);
+      background: var(--blue-soft);
+    }
+
+    .arrow {
+      color: var(--muted);
+      font-size: 20px;
+      text-align: center;
     }
 
     .slots {
       display: grid;
-      gap: 10px;
-      margin: 18px 0;
+      gap: 14px;
+      margin-bottom: 6px;
     }
 
     .slot {
       display: grid;
-      grid-template-columns: 72px minmax(160px, 1fr) minmax(140px, auto) minmax(120px, 1fr);
-      gap: 8px;
+      grid-template-columns: 74px minmax(140px, 1fr) 128px 58px;
+      gap: 10px;
       align-items: center;
+    }
+
+    .slot > span:first-child {
+      font-family: var(--grotesk);
+      font-size: 0.8rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--muted);
     }
 
     .slot input {
       min-width: 0;
-      padding: 5px 7px;
-      border: 1px solid var(--line);
+      padding: 10px 12px;
+      border: 1.5px solid var(--line);
+      border-radius: 10px;
+      background: #fff;
+      color: var(--ink);
+      font: inherit;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+
+    .slot input:focus {
+      outline: none;
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px var(--blue-soft);
     }
 
     .meter {
-      height: 22px;
-      border: 1px solid var(--ink);
-      background: linear-gradient(90deg, var(--cold), var(--warm), var(--hot));
+      height: 12px;
+      border-radius: 999px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      background: linear-gradient(
+        90deg,
+        var(--heat-cool),
+        var(--heat-low),
+        var(--heat-mid),
+        var(--heat-warm)
+      );
       position: relative;
     }
 
@@ -115,155 +223,465 @@
       inset: 0;
       width: calc(100% - var(--heat, 0%));
       margin-left: var(--heat, 0%);
-      background: rgba(255, 255, 255, 0.78);
-      border-left: 1px solid rgba(0, 0, 0, 0.35);
+      background: #ffffff;
+      border-left: 1px solid rgba(20, 32, 58, 0.12);
+      transition: margin-left 0.2s ease, width 0.2s ease;
     }
 
     .heat-label {
+      font-family: var(--grotesk);
+      font-size: 0.85rem;
+      color: var(--muted);
       font-variant-numeric: tabular-nums;
+      text-align: right;
+      white-space: nowrap;
     }
 
-    .result {
-      min-height: 28px;
-      margin: 12px 0;
-      font-weight: 700;
-    }
-
-    .bridge-map {
-      margin: 12px 0 18px;
-      padding: 10px;
-      border: 1px solid var(--line);
-      background: #fafafa;
-    }
-
-    .bridge-title {
-      margin-bottom: 8px;
-      font-weight: 700;
-    }
-
-    .bridge-path {
+    /* ---------- Actions ---------- */
+    .actions {
       display: flex;
       flex-wrap: wrap;
-      gap: 6px;
-      align-items: center;
+      gap: 10px;
+      margin-top: 22px;
     }
 
-    .bridge-node {
-      padding: 3px 7px;
-      border: 1px solid var(--ink);
-      background: var(--paper);
-      font-variant-numeric: tabular-nums;
-    }
-
-    details,
-    .notes {
-      margin-top: 18px;
-      padding-top: 12px;
-      border-top: 1px solid var(--line);
-    }
-
-    summary {
+    button.btn {
+      font: inherit;
+      font-family: var(--grotesk);
+      padding: 11px 18px;
+      border-radius: 10px;
+      border: 1.5px solid var(--blue);
       cursor: pointer;
-      font-weight: 700;
+      background: #fff;
+      color: var(--blue-ink);
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
     }
 
-    .muted {
+    button.btn:hover {
+      background: var(--blue-soft);
+    }
+
+    button.btn.primary {
+      background: var(--blue);
+      color: #fff;
+      margin-left: auto;
+    }
+
+    button.btn.primary:hover {
+      background: var(--blue-ink);
+      border-color: var(--blue-ink);
+    }
+
+    button.btn.ghost {
+      border-color: var(--line);
       color: var(--muted);
     }
 
-    .right {
+    button.btn.ghost:hover {
+      border-color: var(--blue);
+      color: var(--blue-ink);
+      background: #fff;
+    }
+
+    .result {
+      min-height: 26px;
+      margin-top: 18px;
+      text-align: center;
+      font-family: var(--grotesk);
+    }
+
+    .result.right {
       color: var(--right);
     }
 
-    .wrong {
-      color: #9d1b1b;
+    .result.wrong {
+      color: var(--wrong);
+    }
+
+    /* ---------- Modals ---------- */
+    .modal {
+      position: fixed;
+      inset: 0;
+      z-index: 40;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal.open {
+      display: flex;
+    }
+
+    .modal-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(20, 32, 58, 0.42);
+    }
+
+    .modal-card {
+      position: relative;
+      z-index: 1;
+      width: min(440px, 92vw);
+      max-height: 88vh;
+      overflow: auto;
+      background: var(--card);
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      box-shadow: 0 24px 60px rgba(20, 32, 58, 0.28);
+      padding: 26px 24px;
+    }
+
+    .modal-card h2 {
+      margin: 0 0 12px;
+      font-family: var(--grotesk);
+      font-weight: 400;
+      font-size: 1.5rem;
+      letter-spacing: 0.02em;
+    }
+
+    .modal-card p {
+      margin: 0 0 12px;
+      color: var(--muted);
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 12px;
+      right: 14px;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-size: 22px;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    .modal-close:hover {
+      color: var(--ink);
+    }
+
+    .field {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 16px 0 6px;
+    }
+
+    .field label {
+      font-family: var(--grotesk);
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+    }
+
+    select {
+      font: inherit;
+      padding: 9px 11px;
+      border-radius: 10px;
+      border: 1.5px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+    }
+
+    .win-seq {
+      font-family: var(--grotesk);
+      font-size: 1.05rem;
+      color: var(--blue-ink);
+      background: var(--blue-soft);
+      border-radius: 12px;
+      padding: 14px 16px;
+      text-align: center;
+      margin: 4px 0 18px;
+      word-break: break-word;
+    }
+
+    /* ---------- Confetti ---------- */
+    .confetti-mount {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+      border-radius: 18px;
+    }
+
+    .confetti {
+      position: absolute;
+      top: -12px;
+      width: 8px;
+      height: 12px;
+      border-radius: 2px;
+      opacity: 0;
+      animation: confetti-fall 1.3s ease-in forwards;
+    }
+
+    @keyframes confetti-fall {
+      0% {
+        transform: translate(0, -12px) rotate(0deg);
+        opacity: 1;
+      }
+      100% {
+        transform: translate(var(--x, 0), 105vh) rotate(540deg);
+        opacity: 1;
+      }
+    }
+
+    /* ---------- Developer's Panel ---------- */
+    .dev-panel {
+      max-width: 620px;
+      margin: 26px auto 0;
+      padding: 0 18px;
+      color: var(--muted);
+    }
+
+    .dev-panel > summary {
+      cursor: pointer;
+      font-family: var(--grotesk);
+      font-size: 0.82rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: 10px 0;
+      border-top: 1px dashed var(--line);
+      list-style: none;
+    }
+
+    .dev-panel > summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .dev-panel > summary::before {
+      content: "\25B8  ";
+    }
+
+    .dev-panel[open] > summary::before {
+      content: "\25BE  ";
+    }
+
+    .dev-section {
+      margin: 14px 0 22px;
+    }
+
+    .dev-section h3 {
+      margin: 0 0 10px;
+      font-family: var(--grotesk);
+      font-weight: 400;
+      color: var(--ink);
+    }
+
+    .dev-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 12px;
+      align-items: center;
+      margin: 8px 0;
+    }
+
+    .dev-panel button {
+      font: inherit;
+      font-family: var(--grotesk);
+      padding: 7px 12px;
+      border-radius: 8px;
+      border: 1.5px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+    }
+
+    .dev-panel button:hover {
+      border-color: var(--blue);
     }
 
     table {
       border-collapse: collapse;
       width: 100%;
       margin-top: 10px;
+      font-size: 0.9rem;
     }
 
     th,
     td {
       border: 1px solid var(--line);
-      padding: 5px 7px;
+      padding: 6px 8px;
       text-align: left;
       vertical-align: top;
     }
 
+    th {
+      font-family: var(--grotesk);
+      font-weight: 400;
+      background: var(--paper);
+    }
+
+    /* ---------- Responsive ---------- */
     @media (max-width: 680px) {
-      body {
-        margin: 14px;
+      main {
+        padding: 20px 14px 48px;
+      }
+
+      .card {
+        padding: 20px 16px 22px;
       }
 
       .endpoints {
         grid-template-columns: 1fr;
-        font-size: 20px;
+      }
+
+      .arrow {
+        transform: rotate(90deg);
       }
 
       .slot {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr auto;
+        grid-template-areas:
+          "label heat"
+          "input input"
+          "meter meter";
+        row-gap: 6px;
+      }
+
+      .slot > span:first-child {
+        grid-area: label;
+      }
+
+      .slot input {
+        grid-area: input;
+      }
+
+      .heat-label {
+        grid-area: heat;
+      }
+
+      .meter {
+        grid-area: meter;
+      }
+
+      button.btn.primary {
+        margin-left: 0;
+        width: 100%;
       }
     }
   </style>
 </head>
 <body>
-  <h1>Sequence</h1>
-
-  <fieldset>
-    <legend>Game</legend>
-    <div class="row">
-      <label for="tier">Tier</label>
-      <select id="tier">
-        <option value="1">Tier 1: one middle word</option>
-        <option value="2">Tier 2: two middle words</option>
-        <option value="3">Tier 3: three middle words</option>
-      </select>
-      <button type="button" id="new-puzzle">New puzzle</button>
-      <button type="submit" form="sequence-form" id="check">Check sequence</button>
-      <button type="button" id="reveal">Reveal one valid route</button>
+  <header class="app-bar">
+    <div class="left">
+      <button type="button" class="icon-btn" id="help-btn" aria-label="How to play" title="How to play">?</button>
     </div>
-    <p id="prompt" class="muted"></p>
-  </fieldset>
-
-  <fieldset>
-    <legend>Proof of Concept Trials</legend>
-    <div class="row">
-      <label for="trial">Trial</label>
-      <select id="trial">
-        <option value="multi-route">POC A: multiple verification trees</option>
-        <option value="single-route">POC B: single verified route</option>
-      </select>
-      <button type="button" id="load-trial">Load trial</button>
+    <span class="wordmark"><span class="sun" aria-hidden="true"></span>Sequence</span>
+    <div class="right">
+      <button type="button" class="icon-btn" id="settings-btn" aria-label="Settings" title="Settings">&#9881;</button>
     </div>
-    <p id="trial-note" class="muted">
-      POC A tests forgiving associative play. POC B tests a stricter answer key using the same tier depth.
-    </p>
-  </fieldset>
+  </header>
 
   <main>
-    <div class="endpoints" aria-live="polite">
-      <div class="endpoint" id="start-word"></div>
-      <div>to</div>
-      <div class="endpoint" id="end-word"></div>
+    <div class="card">
+      <p id="prompt" class="prompt"></p>
+
+      <div class="endpoints" aria-live="polite">
+        <div class="endpoint" id="start-word"></div>
+        <div class="arrow" aria-hidden="true">&#8594;</div>
+        <div class="endpoint" id="end-word"></div>
+      </div>
+
+      <form id="sequence-form">
+        <div class="slots" id="slots"></div>
+      </form>
+
+      <div class="result" id="result" aria-live="polite"></div>
+
+      <div class="actions">
+        <button type="button" class="btn" id="new-puzzle">New puzzle</button>
+        <button type="button" class="btn ghost" id="reveal">Reveal answer</button>
+        <button type="submit" class="btn primary" form="sequence-form" id="check">Check sequence</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- Help modal -->
+  <div class="modal" id="help-modal" role="dialog" aria-modal="true" aria-labelledby="help-title">
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-card">
+      <button type="button" class="modal-close" data-close aria-label="Close">&times;</button>
+      <h2 id="help-title">How to play</h2>
+      <p>
+        Every puzzle gives you a <strong>start</strong> word and an <strong>end</strong> word.
+        Fill the middle slot (or slots) to build a chain where each word connects
+        naturally to the next.
+      </p>
+      <p>
+        As you type, the <strong>heat meter</strong> shows how close each word is to an
+        accepted answer &mdash; the further the fill slides right, the warmer you are.
+      </p>
+      <p>
+        Press <strong>Check sequence</strong> once every slot is filled. There is often
+        more than one valid route, so trust your associations.
+      </p>
+    </div>
+  </div>
+
+  <!-- Settings modal -->
+  <div class="modal" id="settings-modal" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-card">
+      <button type="button" class="modal-close" data-close aria-label="Close">&times;</button>
+      <h2 id="settings-title">Settings</h2>
+      <div class="field">
+        <label for="tier">Difficulty</label>
+        <select id="tier">
+          <option value="1">Tier 1 &middot; one middle word</option>
+          <option value="2">Tier 2 &middot; two middle words</option>
+          <option value="3">Tier 3 &middot; three middle words</option>
+        </select>
+      </div>
+      <p>Changing difficulty starts a fresh puzzle when you close this panel.</p>
+    </div>
+  </div>
+
+  <!-- Win modal -->
+  <div class="modal" id="win-modal" role="dialog" aria-modal="true" aria-labelledby="win-title">
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-card">
+      <div class="confetti-mount" id="confetti" aria-hidden="true"></div>
+      <button type="button" class="modal-close" data-close aria-label="Close">&times;</button>
+      <h2 id="win-title">You got it!</h2>
+      <p>You built a verified sequence:</p>
+      <div class="win-seq" id="win-sequence"></div>
+      <div class="actions">
+        <button type="button" class="btn primary" id="win-new-puzzle">New puzzle</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Developer's Panel -->
+  <details class="dev-panel">
+    <summary>Developer's Panel</summary>
+
+    <div class="dev-section">
+      <h3>Proof of Concept Trials</h3>
+      <div class="dev-row">
+        <label for="trial">Trial</label>
+        <select id="trial">
+          <option value="multi-route">POC A: multiple verification trees</option>
+          <option value="single-route">POC B: single verified route</option>
+        </select>
+        <button type="button" id="load-trial">Load trial</button>
+      </div>
+      <p id="trial-note">
+        POC A tests forgiving associative play. POC B tests a stricter answer key using the same tier depth.
+      </p>
     </div>
 
-    <form id="sequence-form">
-      <div class="slots" id="slots"></div>
-    </form>
-
-    <div class="result" id="result" aria-live="polite"></div>
-
-    <div class="bridge-map" id="bridge-map" aria-live="polite"></div>
-
-    <details>
-      <summary>Accepted routes and verifier notes</summary>
-      <p class="muted">
-        The verifier accepts several route trees for each puzzle. Heat uses a small
-        modified GLoVe-style model built from routes, clues, and endpoint co-occurrence,
-        then compares each entry against the closest bridge words for that slot.
+    <div class="dev-section">
+      <h3>Accepted routes and verifier notes</h3>
+      <p>
+        The verifier accepts several route trees for each puzzle. Heat compares each entry
+        against the closest accepted word for that slot.
       </p>
       <table>
         <thead>
@@ -276,15 +694,15 @@
         </thead>
         <tbody id="route-table"></tbody>
       </table>
-    </details>
+    </div>
 
-    <section class="notes">
-      <h2>Design Notes</h2>
+    <div class="dev-section">
+      <h3>Design Notes</h3>
       <p>
         Multiple verification trees are better for playability here. A single route makes
         good associative answers fail for reasons the player cannot infer. The current
-        verifier accepts parallel routes and scores heat by slot using semantic likeness,
-        which keeps the puzzle directed without making it one-answer brittle.
+        verifier accepts parallel routes and scores heat by slot, which keeps the puzzle
+        directed without making it one-answer brittle.
       </p>
       <p>
         Cryptography is not necessary for this local raw HTML version. It could help later
@@ -292,8 +710,8 @@
         puzzles, but it would make the present heat-map feedback worse because the browser
         needs useful clue data to score guesses.
       </p>
-    </section>
-  </main>
+    </div>
+  </details>
 
   <script>
     const puzzles = [
@@ -485,6 +903,8 @@
 
     let currentPuzzle = null;
     let currentPuzzleIndex = -1;
+    let revealed = false;
+    let settingsTierOnOpen = null;
 
     const tierSelect = document.querySelector("#tier");
     const trialSelect = document.querySelector("#trial");
@@ -497,21 +917,15 @@
     const endWord = document.querySelector("#end-word");
     const slots = document.querySelector("#slots");
     const result = document.querySelector("#result");
-    const bridgeMap = document.querySelector("#bridge-map");
     const routeTable = document.querySelector("#route-table");
-
-    const STOP_WORDS = new Set([
-      "a",
-      "an",
-      "and",
-      "for",
-      "from",
-      "of",
-      "or",
-      "the",
-      "to",
-      "where"
-    ]);
+    const helpButton = document.querySelector("#help-btn");
+    const settingsButton = document.querySelector("#settings-btn");
+    const helpModal = document.querySelector("#help-modal");
+    const settingsModal = document.querySelector("#settings-modal");
+    const winModal = document.querySelector("#win-modal");
+    const winSequence = document.querySelector("#win-sequence");
+    const winNewPuzzle = document.querySelector("#win-new-puzzle");
+    const confettiMount = document.querySelector("#confetti");
 
     function normalize(value) {
       return value.trim().toLowerCase().replace(/\s+/g, " ");
@@ -521,96 +935,9 @@
       return Array.from(new Set(values));
     }
 
-    function tokenizeText(value) {
-      return normalize(value)
-        .replace(/[^a-z0-9 ]/g, " ")
-        .split(" ")
-        .filter((token) => token && !STOP_WORDS.has(token));
-    }
-
     function slotAnswers(puzzle, slotIndex) {
       return unique(puzzle.routes.map((route) => route[slotIndex]));
     }
-
-    function addWeightedPair(matrix, source, context, weight) {
-      const sourceWord = normalize(source);
-      const contextWord = normalize(context);
-
-      if (!sourceWord || !contextWord || sourceWord === contextWord) {
-        return;
-      }
-
-      if (!matrix.has(sourceWord)) {
-        matrix.set(sourceWord, new Map());
-      }
-
-      const row = matrix.get(sourceWord);
-      row.set(contextWord, (row.get(contextWord) || 0) + weight);
-    }
-
-    function addContextWindow(matrix, words, baseWeight) {
-      const cleanWords = words.map(normalize).filter(Boolean);
-
-      cleanWords.forEach((word, index) => {
-        cleanWords.forEach((context, contextIndex) => {
-          if (index === contextIndex) {
-            return;
-          }
-
-          addWeightedPair(matrix, word, context, baseWeight / Math.abs(index - contextIndex));
-        });
-      });
-    }
-
-    function addSemanticClique(matrix, words, weight) {
-      const cleanWords = unique(words.map(normalize).filter(Boolean));
-
-      cleanWords.forEach((word) => {
-        cleanWords.forEach((context) => addWeightedPair(matrix, word, context, weight));
-      });
-    }
-
-    function buildModifiedGloveModel(items) {
-      const matrix = new Map();
-
-      items.forEach((puzzle) => {
-        puzzle.routes.forEach((route) => {
-          addContextWindow(matrix, [puzzle.start, ...route, puzzle.end], 4);
-        });
-
-        puzzle.clues.forEach((clue, index) => {
-          const slotWords = slotAnswers(puzzle, index);
-          const clueWords = unique([
-            ...slotWords,
-            ...clue.related,
-            ...tokenizeText(clue.category),
-            ...tokenizeText(puzzle.prompt)
-          ]);
-
-          addSemanticClique(matrix, clueWords, 1.4);
-          addContextWindow(matrix, [puzzle.start, ...slotWords, puzzle.end], 0.9);
-        });
-      });
-
-      const vectors = new Map();
-
-      matrix.forEach((row, word) => {
-        const vector = new Map();
-
-        row.forEach((count, context) => {
-          vector.set(context, Math.log1p(count));
-        });
-
-        vectors.set(word, vector);
-      });
-
-      return {
-        vectors,
-        vocabulary: Array.from(vectors.keys())
-      };
-    }
-
-    const semanticModel = buildModifiedGloveModel([...puzzles, ...pocTrials]);
 
     function levenshtein(a, b) {
       const rows = Array.from({ length: a.length + 1 }, () => []);
@@ -650,145 +977,29 @@
       return Math.max(0, 1 - distance / Math.max(a.length, b.length));
     }
 
-    function addScaledVector(target, vector, scale) {
-      vector.forEach((value, key) => {
-        target.set(key, (target.get(key) || 0) + value * scale);
-      });
-    }
-
-    function averageVectors(items) {
-      const output = new Map();
-      let totalWeight = 0;
-
-      items.forEach((item) => {
-        if (!item.vector || item.weight <= 0) {
-          return;
-        }
-
-        addScaledVector(output, item.vector, item.weight);
-        totalWeight += item.weight;
-      });
-
-      if (totalWeight === 0) {
-        return null;
-      }
-
-      output.forEach((value, key) => output.set(key, value / totalWeight));
-      return output;
-    }
-
-    function semanticVector(word) {
-      const cleanWord = normalize(word).replace(/[^a-z0-9 ]/g, " ");
-
-      if (semanticModel.vectors.has(cleanWord)) {
-        return semanticModel.vectors.get(cleanWord);
-      }
-
-      const tokenVectors = tokenizeText(cleanWord)
-        .map((token) => semanticModel.vectors.get(token))
-        .filter(Boolean)
-        .map((vector) => ({ vector, weight: 1 }));
-
-      if (tokenVectors.length > 0) {
-        return averageVectors(tokenVectors);
-      }
-
-      const lexicalNeighbors = semanticModel.vocabulary
-        .map((candidate) => ({
-          vector: semanticModel.vectors.get(candidate),
-          weight: stringSimilarity(cleanWord, candidate)
-        }))
-        .filter((item) => item.weight >= 0.72);
-
-      return averageVectors(lexicalNeighbors);
-    }
-
-    function cosineSimilarity(a, b) {
-      if (!a || !b) {
-        return 0;
-      }
-
-      let dot = 0;
-      let aMagnitude = 0;
-      let bMagnitude = 0;
-
-      a.forEach((value, key) => {
-        dot += value * (b.get(key) || 0);
-        aMagnitude += value * value;
-      });
-
-      b.forEach((value) => {
-        bMagnitude += value * value;
-      });
-
-      if (aMagnitude === 0 || bMagnitude === 0) {
-        return 0;
-      }
-
-      return Math.max(0, dot / Math.sqrt(aMagnitude * bMagnitude));
-    }
-
-    function likenessToTargets(guess, targets) {
-      const guessVector = semanticVector(guess);
-      let best = { score: 0, word: "" };
-
-      unique(targets.map(normalize)).forEach((target) => {
-        const targetVector = semanticVector(target);
-        const semanticScore = cosineSimilarity(guessVector, targetVector);
-        const lexicalScore = stringSimilarity(guess, target) * 0.72;
-        const score = Math.max(semanticScore, lexicalScore);
-
-        if (score > best.score) {
-          best = { score, word: target };
-        }
-      });
-
-      return best;
-    }
-
-    function bridgeLikeness(guess, puzzle, slotIndex) {
-      const leftWords = slotIndex === 0 ? [puzzle.start] : slotAnswers(puzzle, slotIndex - 1);
-      const rightWords = slotIndex === puzzle.tier - 1 ? [puzzle.end] : slotAnswers(puzzle, slotIndex + 1);
-      const left = likenessToTargets(guess, leftWords).score;
-      const right = likenessToTargets(guess, rightWords).score;
-
-      return Math.sqrt(left * right);
-    }
-
-    function wordLikeness(input, puzzle, slotIndex) {
+    function wordHeat(input, puzzle, slotIndex) {
       const guess = normalize(input);
 
       if (!guess) {
-        return { heat: 0, nearest: "", semantic: 0, bridge: 0 };
+        return 0;
       }
 
-      const acceptedWords = slotAnswers(puzzle, slotIndex).map(normalize);
+      const acceptedWords = slotAnswers(puzzle, slotIndex);
 
       if (acceptedWords.includes(guess)) {
-        return { heat: 100, nearest: guess, semantic: 1, bridge: 1 };
+        return 100;
       }
 
       const clue = puzzle.clues[slotIndex];
       const related = clue.related.map(normalize);
-      const targets = unique([...acceptedWords, ...related]);
-      const target = likenessToTargets(guess, targets);
-      const bridge = bridgeLikeness(guess, puzzle, slotIndex);
-      const semanticScore = Math.round(target.score * 88);
-      const bridgeScore = Math.round(bridge * 78);
-      const relatedScore = related.includes(guess) ? 82 : 0;
-      const categoryScore = tokenizeText(clue.category).some((token) => guess.includes(token)) ? 42 : 0;
-      const heat = Math.min(99, Math.max(10, relatedScore, semanticScore, bridgeScore, categoryScore));
+      const relatedScore = related.includes(guess) ? 76 : 0;
+      const similarityScore = Math.max(
+        ...acceptedWords.map((answer) => Math.round(stringSimilarity(guess, answer) * 64))
+      );
+      const tokenScore = related.some((word) => word.includes(guess) || guess.includes(word)) ? 58 : 0;
+      const categoryScore = clue.category.split(" ").some((token) => guess.includes(token)) ? 40 : 0;
 
-      return {
-        heat,
-        nearest: target.word,
-        semantic: target.score,
-        bridge
-      };
-    }
-
-    function wordHeat(input, puzzle, slotIndex) {
-      return wordLikeness(input, puzzle, slotIndex).heat;
+      return Math.min(99, Math.max(10, relatedScore, similarityScore, tokenScore, categoryScore));
     }
 
     function isAcceptedRoute(puzzle, entries) {
@@ -807,8 +1018,8 @@
         row.innerHTML = `
           <span>Word ${index + 1}</span>
           <input autocomplete="off" data-slot="${index}" aria-label="Word ${index + 1}">
-          <span class="heat-label" data-heat-label="${index}">0% heat</span>
           <span class="meter" data-meter="${index}" style="--heat: 0%"></span>
+          <span class="heat-label" data-heat-label="${index}">0%</span>
         `;
         slots.append(row);
       }
@@ -820,6 +1031,7 @@
 
     function renderPuzzle(puzzle) {
       currentPuzzle = puzzle;
+      revealed = false;
       promptText.textContent = puzzle.verifierNote
         ? `${puzzle.prompt} ${puzzle.verifierNote}`
         : puzzle.prompt;
@@ -828,7 +1040,6 @@
       result.textContent = "";
       result.className = "result";
       renderSlots(puzzle);
-      updateHeat();
       slots.querySelector("input")?.focus();
     }
 
@@ -860,74 +1071,12 @@
 
     function updateHeat() {
       inputs().forEach((input, index) => {
-        const likeness = wordLikeness(input.value, currentPuzzle, index);
-        const heat = likeness.heat;
+        const heat = wordHeat(input.value, currentPuzzle, index);
         const label = slots.querySelector(`[data-heat-label="${index}"]`);
         const meter = slots.querySelector(`[data-meter="${index}"]`);
-        label.textContent = likeness.nearest ? `${heat}% heat, like ${likeness.nearest}` : `${heat}% heat`;
+        label.textContent = `${heat}%`;
         meter.style.setProperty("--heat", `${heat}%`);
       });
-
-      renderBridgeMap();
-    }
-
-    function appendBridgeNode(parent, text, isMuted = false) {
-      const node = document.createElement("span");
-      node.className = isMuted ? "bridge-node muted" : "bridge-node";
-      node.textContent = text;
-      parent.append(node);
-    }
-
-    function appendBridgeArrow(parent) {
-      const arrow = document.createElement("span");
-      arrow.textContent = "->";
-      parent.append(arrow);
-    }
-
-    function renderBridgeMap() {
-      const entries = currentEntries();
-      const filled = entries.filter((entry) => normalize(entry));
-
-      bridgeMap.innerHTML = "";
-
-      const title = document.createElement("div");
-      title.className = "bridge-title";
-      title.textContent = "GLoVe-like bridge map";
-      bridgeMap.append(title);
-
-      const path = document.createElement("div");
-      path.className = "bridge-path";
-      appendBridgeNode(path, currentPuzzle.start);
-
-      entries.forEach((entry, index) => {
-        appendBridgeArrow(path);
-
-        const cleanEntry = normalize(entry);
-        if (!cleanEntry) {
-          appendBridgeNode(path, `word ${index + 1}`, true);
-          return;
-        }
-
-        appendBridgeNode(path, `${cleanEntry} ${wordHeat(entry, currentPuzzle, index)}%`);
-      });
-
-      appendBridgeArrow(path);
-      appendBridgeNode(path, currentPuzzle.end);
-      bridgeMap.append(path);
-
-      const note = document.createElement("p");
-      note.className = "muted";
-
-      if (filled.length === 0) {
-        note.textContent = "Enter words to see how strongly they sit between the two endpoints.";
-      } else {
-        const averageHeat = Math.round(
-          entries.reduce((sum, entry, index) => sum + wordHeat(entry, currentPuzzle, index), 0) / entries.length
-        );
-        note.textContent = `${averageHeat}% route likeness from log co-occurrence vectors over accepted routes and clue words.`;
-      }
-
-      bridgeMap.append(note);
     }
 
     function checkSequence() {
@@ -940,8 +1089,12 @@
       }
 
       if (isAcceptedRoute(currentPuzzle, entries)) {
-        result.textContent = "Correct sequence.";
-        result.className = "result right";
+        if (revealed) {
+          result.textContent = "Correct sequence.";
+          result.className = "result right";
+        } else {
+          showWin(entries);
+        }
       } else {
         result.textContent = "Not a verified sequence yet. Use the heat to adjust each slot.";
         result.className = "result wrong";
@@ -949,12 +1102,17 @@
     }
 
     function revealRoute() {
+      if (!window.confirm("This shows a correct answer for this puzzle. Reveal it?")) {
+        return;
+      }
+
       const route = currentPuzzle.routes[0];
       inputs().forEach((input, index) => {
         input.value = route[index];
       });
+      revealed = true;
       updateHeat();
-      result.textContent = `${currentPuzzle.start} -> ${route.join(" -> ")} -> ${currentPuzzle.end}`;
+      result.textContent = `${currentPuzzle.start} → ${route.join(" → ")} → ${currentPuzzle.end}`;
       result.className = "result";
     }
 
@@ -984,13 +1142,90 @@
       renderPuzzle(trial);
     }
 
-    tierSelect.addEventListener("change", pickPuzzle);
+    /* ---------- Modals ---------- */
+    function openModal(modal) {
+      modal.classList.add("open");
+    }
+
+    function closeModal(modal) {
+      modal.classList.remove("open");
+    }
+
+    function closeSettings() {
+      closeModal(settingsModal);
+      if (tierSelect.value !== settingsTierOnOpen) {
+        pickPuzzle();
+      }
+    }
+
+    function anyOpenModal() {
+      return document.querySelector(".modal.open");
+    }
+
+    function dismiss(modal) {
+      if (modal === settingsModal) {
+        closeSettings();
+      } else {
+        closeModal(modal);
+      }
+    }
+
+    function showWin(entries) {
+      winSequence.textContent = `${currentPuzzle.start} → ${entries.join(" → ")} → ${currentPuzzle.end}`;
+      result.textContent = "";
+      result.className = "result";
+      openModal(winModal);
+      confetti();
+    }
+
+    function confetti() {
+      const colors = ["#bcd9ff", "#bff0d6", "#fff0ab", "#ffc9c1", "#d9c4ff"];
+      for (let i = 0; i < 40; i += 1) {
+        const piece = document.createElement("span");
+        piece.className = "confetti";
+        piece.style.left = `${Math.random() * 100}%`;
+        piece.style.background = colors[i % colors.length];
+        piece.style.animationDelay = `${Math.random() * 0.3}s`;
+        piece.style.setProperty("--x", `${(Math.random() * 2 - 1) * 90}px`);
+        piece.addEventListener("animationend", () => piece.remove());
+        confettiMount.append(piece);
+      }
+    }
+
+    /* ---------- Wiring ---------- */
     newPuzzleButton.addEventListener("click", pickPuzzle);
     loadTrialButton.addEventListener("click", loadTrial);
     revealButton.addEventListener("click", revealRoute);
+
     document.querySelector("#sequence-form").addEventListener("submit", (event) => {
       event.preventDefault();
       checkSequence();
+    });
+
+    helpButton.addEventListener("click", () => openModal(helpModal));
+    settingsButton.addEventListener("click", () => {
+      settingsTierOnOpen = tierSelect.value;
+      openModal(settingsModal);
+    });
+
+    winNewPuzzle.addEventListener("click", () => {
+      closeModal(winModal);
+      pickPuzzle();
+    });
+
+    document.querySelectorAll(".modal [data-close]").forEach((element) => {
+      element.addEventListener("click", () => {
+        dismiss(element.closest(".modal"));
+      });
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        const open = anyOpenModal();
+        if (open) {
+          dismiss(open);
+        }
+      }
     });
 
     renderRouteTable();
