@@ -25,6 +25,8 @@
       --heat-low: #bff0d6;
       --heat-mid: #fff0ab;
       --heat-warm: #ffc9c1;
+      --spectrum-hue: 250;
+      --spectrum-light: 72%;
       --grotesk: "Space Grotesk", "Helvetica Neue", Helvetica, Arial, sans-serif;
       --sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
     }
@@ -209,12 +211,11 @@
       border: 1px solid var(--line);
       background: linear-gradient(
         90deg,
-        var(--heat-cool),
-        var(--heat-low),
-        var(--heat-mid),
-        var(--heat-warm)
+        hsl(var(--spectrum-hue) 90% 95%),
+        hsl(var(--spectrum-hue) 88% var(--spectrum-light))
       );
       position: relative;
+      transition: background 0.2s ease, border-color 0.2s ease;
     }
 
     .meter::after {
@@ -231,10 +232,11 @@
     .heat-label {
       font-family: var(--grotesk);
       font-size: 0.85rem;
-      color: var(--muted);
+      color: hsl(var(--spectrum-hue) 55% 34%);
       font-variant-numeric: tabular-nums;
       text-align: right;
       white-space: nowrap;
+      transition: color 0.2s ease;
     }
 
     /* ---------- Actions ---------- */
@@ -616,7 +618,8 @@
       </p>
       <p>
         As you type, the <strong>heat meter</strong> shows how close each word is to an
-        accepted answer &mdash; the further the fill slides right, the warmer you are.
+        accepted answer. Violet and blue are cold; green, yellow, orange, and red mean
+        the word is increasingly close in the sequence spectrum.
       </p>
       <p>
         Press <strong>Check sequence</strong> once every slot is filled. There is often
@@ -683,6 +686,8 @@
         The verifier accepts several route trees for each puzzle. Heat uses a small
         modified GLoVe-style model built from routes, clues, and endpoint co-occurrence,
         then compares each entry against the closest bridge words for that slot.
+        Meter color follows the same calculation: cold violet to hot red by semantic
+        and bridge-context relativity.
       </p>
       <table>
         <thead>
@@ -1215,8 +1220,25 @@
       };
     }
 
-    function wordHeat(input, puzzle, slotIndex) {
-      return wordLikeness(input, puzzle, slotIndex).heat;
+    function clamp(value, min, max) {
+      return Math.min(max, Math.max(min, value));
+    }
+
+    function sequenceSpectrum(likeness) {
+      const vectorPull = clamp(likeness.semantic * 0.7 + likeness.bridge * 0.3, 0, 1);
+      const heatPull = clamp(likeness.heat / 100, 0, 1);
+      const relativity = clamp(vectorPull * 0.8 + heatPull * 0.2, 0, 1);
+
+      return {
+        hue: Math.round(260 - relativity * 260),
+        light: `${Math.round(76 - relativity * 22)}%`,
+        relativity: Math.round(relativity * 100)
+      };
+    }
+
+    function applySequenceSpectrum(element, spectrum) {
+      element.style.setProperty("--spectrum-hue", spectrum.hue);
+      element.style.setProperty("--spectrum-light", spectrum.light);
     }
 
     function isAcceptedRoute(puzzle, entries) {
@@ -1235,8 +1257,8 @@
         row.innerHTML = `
           <span>Word ${index + 1}</span>
           <input autocomplete="off" data-slot="${index}" aria-label="Word ${index + 1}">
-          <span class="meter" data-meter="${index}" style="--heat: 0%"></span>
-          <span class="heat-label" data-heat-label="${index}">0%</span>
+          <span class="meter" data-meter="${index}" style="--heat: 0%; --spectrum-hue: 250; --spectrum-light: 76%"></span>
+          <span class="heat-label" data-heat-label="${index}" style="--spectrum-hue: 250">0%</span>
         `;
         slots.append(row);
       }
@@ -1288,11 +1310,16 @@
 
     function updateHeat() {
       inputs().forEach((input, index) => {
-        const heat = wordHeat(input.value, currentPuzzle, index);
+        const likeness = wordLikeness(input.value, currentPuzzle, index);
+        const spectrum = sequenceSpectrum(likeness);
         const label = slots.querySelector(`[data-heat-label="${index}"]`);
         const meter = slots.querySelector(`[data-meter="${index}"]`);
-        label.textContent = `${heat}%`;
-        meter.style.setProperty("--heat", `${heat}%`);
+        label.textContent = `${likeness.heat}%`;
+        label.title = `${spectrum.relativity}% sequence-spectrum relativity from semantic and bridge likeness`;
+        meter.title = label.title;
+        meter.style.setProperty("--heat", `${likeness.heat}%`);
+        applySequenceSpectrum(label, spectrum);
+        applySequenceSpectrum(meter, spectrum);
       });
     }
 
