@@ -749,10 +749,10 @@
     <div class="dev-section">
       <h3>Accepted routes and verifier notes</h3>
       <p>
-        The verifier accepts several route trees for each puzzle. Submitted guesses use
-        a small deterministic Word2Vec-style skip-gram model trained from routes, clues,
-        and endpoint context. The same vectors rank bridge words between links and score
-        each stored guess by semantic and bridge-context relativity.
+        The verifier accepts several route trees for each puzzle. Puzzles and vectors are
+        generated offline by the Python Word2Vec sequence algorithm, then loaded here as
+        static data. The same vectors rank bridge words between links and score each
+        stored guess by semantic and bridge-context relativity.
       </p>
       <table>
         <thead>
@@ -784,8 +784,9 @@
     </div>
   </details>
 
+  <script src="sequence-data.js"></script>
   <script>
-    const puzzles = [
+    const legacyPuzzles = [
       {
         tier: 1,
         start: "seed",
@@ -914,7 +915,7 @@
       }
     ];
 
-    const pocTrials = [
+    const legacyPocTrials = [
       {
         id: "multi-route",
         tier: 3,
@@ -970,7 +971,13 @@
       }
     ];
 
-    const defaultTrialNote = "POC A tests forgiving associative play. POC B tests a stricter answer key using the same tier depth.";
+    const sequenceData = window.SEQUENCE_DATA || {};
+    const puzzles = Array.isArray(sequenceData.puzzles) ? sequenceData.puzzles : legacyPuzzles;
+    const pocTrials = Array.isArray(sequenceData.pocTrials) ? sequenceData.pocTrials : legacyPocTrials;
+    const scoringData = sequenceData.scoring || { vectors: {}, vocabulary: [] };
+    const defaultTrialNote = sequenceData.metadata
+      ? `Generated offline by ${sequenceData.metadata.algorithm}. POC A tests multiple generated routes; POC B tests one strict route.`
+      : "POC A tests forgiving associative play. POC B tests a stricter answer key using the same tier depth.";
 
     let currentPuzzle = null;
     let currentPuzzleIndex = -1;
@@ -1008,11 +1015,7 @@
     ]);
 
     const GUESS_HISTORY_KEY = "sequence.guessHistory.v1";
-    const WORD2VEC_DIMENSIONS = 24;
-    const WORD2VEC_WINDOW = 2;
-    const WORD2VEC_EPOCHS = 70;
-    const WORD2VEC_RATE = 0.035;
-    const WORD2VEC_NEGATIVES = 2;
+    const WORD2VEC_DIMENSIONS = sequenceData.metadata?.dimensions || 24;
 
     let guessHistory = loadGuessHistory();
 
@@ -1035,96 +1038,6 @@
         .filter((token) => token && !STOP_WORDS.has(token));
     }
 
-    function addWord2VecSentence(sentences, words, repetitions = 1) {
-      const cleanWords = words.map(normalize).filter(Boolean);
-
-      if (cleanWords.length < 2) {
-        return;
-      }
-
-      for (let index = 0; index < repetitions; index += 1) {
-        sentences.push(cleanWords);
-      }
-    }
-
-    function buildWord2VecCorpus(items) {
-      const sentences = [];
-
-      items.forEach((puzzle) => {
-        puzzle.routes.forEach((route) => {
-          addWord2VecSentence(sentences, [puzzle.start, ...route, puzzle.end], 4);
-          addWord2VecSentence(sentences, [puzzle.end, ...route.slice().reverse(), puzzle.start], 2);
-        });
-
-        puzzle.clues.forEach((clue, index) => {
-          const slotWords = slotAnswers(puzzle, index);
-          const leftWords = index === 0 ? [puzzle.start] : slotAnswers(puzzle, index - 1);
-          const rightWords = index === puzzle.tier - 1 ? [puzzle.end] : slotAnswers(puzzle, index + 1);
-
-          addWord2VecSentence(sentences, [...slotWords, ...clue.related], 3);
-          addWord2VecSentence(sentences, [
-            ...slotWords,
-            ...tokenizeText(clue.category),
-            ...tokenizeText(puzzle.prompt)
-          ], 2);
-
-          slotWords.forEach((word) => {
-            leftWords.forEach((left) => {
-              rightWords.forEach((right) => {
-                addWord2VecSentence(sentences, [left, word, right], 2);
-              });
-            });
-          });
-        });
-      });
-
-      return sentences;
-    }
-
-    function hashWord(value) {
-      let hash = 2166136261;
-
-      for (let index = 0; index < value.length; index += 1) {
-        hash ^= value.charCodeAt(index);
-        hash = Math.imul(hash, 16777619);
-      }
-
-      return hash >>> 0;
-    }
-
-    function initialVector(word, salt) {
-      return Array.from({ length: WORD2VEC_DIMENSIONS }, (_, index) => {
-        const unit = hashWord(`${word}:${salt}:${index}`) / 4294967295;
-        return (unit - 0.5) * 0.18;
-      });
-    }
-
-    function dotDense(a, b) {
-      let total = 0;
-
-      for (let index = 0; index < a.length; index += 1) {
-        total += a[index] * b[index];
-      }
-
-      return total;
-    }
-
-    function sigmoid(value) {
-      return 1 / (1 + Math.exp(-clamp(value, -8, 8)));
-    }
-
-    function updateWord2VecPair(inputVector, outputVector, label, rate) {
-      const prediction = sigmoid(dotDense(inputVector, outputVector));
-      const gradient = (label - prediction) * rate;
-
-      for (let index = 0; index < inputVector.length; index += 1) {
-        const inputValue = inputVector[index];
-        const outputValue = outputVector[index];
-        inputVector[index] += gradient * outputValue;
-        outputVector[index] += gradient * inputValue;
-      }
-    }
-
     function normalizeDenseVector(vector) {
       const magnitude = Math.sqrt(vector.reduce((total, value) => total + value * value, 0));
 
@@ -1135,72 +1048,14 @@
       return vector.map((value) => value / magnitude);
     }
 
-    function negativeWord(vocabulary, source, context, pairIndex, epoch, negativeIndex) {
-      let index = (pairIndex * 37 + epoch * 101 + negativeIndex * 17) % vocabulary.length;
-
-      for (let attempts = 0; attempts < vocabulary.length; attempts += 1) {
-        const word = vocabulary[index];
-
-        if (word !== source && word !== context) {
-          return word;
-        }
-
-        index = (index + 1) % vocabulary.length;
-      }
-
-      return vocabulary[index];
-    }
-
-    function buildWord2VecModel(items) {
-      const sentences = buildWord2VecCorpus(items);
-      const vocabulary = unique(sentences.flat()).sort();
-      const inputVectors = new Map();
-      const outputVectors = new Map();
-      const pairs = [];
-
-      vocabulary.forEach((word) => {
-        inputVectors.set(word, initialVector(word, "input"));
-        outputVectors.set(word, initialVector(word, "output"));
-      });
-
-      sentences.forEach((sentence) => {
-        sentence.forEach((source, sourceIndex) => {
-          const start = Math.max(0, sourceIndex - WORD2VEC_WINDOW);
-          const end = Math.min(sentence.length - 1, sourceIndex + WORD2VEC_WINDOW);
-
-          for (let contextIndex = start; contextIndex <= end; contextIndex += 1) {
-            if (contextIndex !== sourceIndex) {
-              pairs.push({ source, context: sentence[contextIndex] });
-            }
-          }
-        });
-      });
-
-      for (let epoch = 0; epoch < WORD2VEC_EPOCHS; epoch += 1) {
-        const rate = WORD2VEC_RATE * (1 - epoch / WORD2VEC_EPOCHS * 0.65);
-
-        pairs.forEach((pair, pairIndex) => {
-          updateWord2VecPair(inputVectors.get(pair.source), outputVectors.get(pair.context), 1, rate);
-
-          for (let negativeIndex = 0; negativeIndex < WORD2VEC_NEGATIVES; negativeIndex += 1) {
-            const negative = negativeWord(vocabulary, pair.source, pair.context, pairIndex, epoch, negativeIndex);
-            updateWord2VecPair(inputVectors.get(pair.source), outputVectors.get(negative), 0, rate);
-          }
-        });
-      }
-
-      const vectors = new Map();
-
-      vocabulary.forEach((word) => {
-        const inputVector = inputVectors.get(word);
-        const outputVector = outputVectors.get(word);
-        vectors.set(word, normalizeDenseVector(inputVector.map((value, index) => value + outputVector[index])));
-      });
-
-      return { vectors, vocabulary };
-    }
-
-    const semanticModel = buildWord2VecModel([...puzzles, ...pocTrials]);
+    const semanticModel = {
+      vectors: new Map(Object.entries(scoringData.vectors || {}).map(([word, vector]) => {
+        return [normalize(word), normalizeDenseVector(vector)];
+      })),
+      vocabulary: Array.isArray(scoringData.vocabulary)
+        ? scoringData.vocabulary.map(normalize)
+        : Object.keys(scoringData.vectors || {}).map(normalize)
+    };
 
     function levenshtein(a, b) {
       const rows = Array.from({ length: a.length + 1 }, () => []);

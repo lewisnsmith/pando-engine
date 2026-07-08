@@ -1,0 +1,82 @@
+{
+  "domains": [
+    {
+      "name": "nature",
+      "sentences": [
+        ["seed", "sprout", "plant", "tree", "forest"],
+        ["seed", "root", "soil", "grove", "forest"],
+        ["rain", "water", "soil", "growth", "harvest"],
+        ["rain", "field", "grain", "crop", "harvest"],
+        ["river", "stream", "water", "valley", "forest"]
+      ]
+    },
+    {
+      "name": "energy",
+      "sentences": [
+        ["spark", "fire", "light", "flash", "signal"],
+        ["spark", "flare", "glow", "beam", "signal"],
+        ["charge", "current", "wire", "pulse", "signal"],
+        ["signal", "message", "radio", "network", "broadcast"]
+      ]
+    },
+    {
+      "name": "knowledge",
+      "sentences": [
+        ["paper", "page", "book", "shelf", "library"],
+        ["paper", "letter", "journal", "catalog", "library"],
+        ["note", "draft", "manuscript", "archive", "record"],
+        ["question", "search", "catalog", "index", "answer"]
+      ]
+    },
+    {
+      "name": "commerce",
+      "sentences": [
+        ["idea", "plan", "product", "market", "business"],
+        ["idea", "sketch", "prototype", "customer", "business"],
+        ["concept", "service", "sale", "revenue", "business"],
+        ["pitch", "team", "platform", "buyer", "company"]
+      ]
+    },
+    {
+      "name": "city",
+      "sentences": [
+        ["stone", "brick", "wall", "street", "city"],
+        ["stone", "quarry", "building", "block", "city"],
+        ["cement", "house", "road", "neighborhood", "city"],
+        ["bridge", "avenue", "district", "square", "city"]
+      ]
+    }
+  ],
+  "endpoint_pairs": [
+    {
+      "start": "seed",
+      "end": "forest",
+      "prompt": "Connect a small beginning to a large living system."
+    },
+    {
+      "start": "spark",
+      "end": "signal",
+      "prompt": "Connect an ignition point to transmitted information."
+    },
+    {
+      "start": "paper",
+      "end": "library",
+      "prompt": "Connect a material to a place where organized knowledge lives."
+    },
+    {
+      "start": "rain",
+      "end": "harvest",
+      "prompt": "Connect weather to a gathered crop."
+    },
+    {
+      "start": "idea",
+      "end": "business",
+      "prompt": "Connect a thought to an operating venture."
+    },
+    {
+      "start": "stone",
+      "end": "city",
+      "prompt": "Connect raw material to a dense built place."
+    }
+  ]
+}
