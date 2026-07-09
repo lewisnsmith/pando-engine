@@ -1,0 +1,274 @@
+\documentclass[11pt]{article}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{booktabs}
+\usepackage[hidelinks]{hyperref}
+
+\newtheorem{definition}{Definition}
+\newtheorem{proposition}{Proposition}
+
+\newcommand{\cosim}{\sigma}
+\newcommand{\thresh}{\tau}
+
+\title{The Mathematics of the Sequence Connectivity Engine}
+\author{Sequence}
+\date{July 2026}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Sequence is a word game: connect a start word to an end word through a chain of
+intermediate words, where every adjacent pair must be semantically related, and
+the shortest verified chain wins. This note formalizes the mathematics behind
+the verification engine: the embedding space and similarity measure, the link
+verification predicate, the empirical calibration of the acceptance threshold,
+the construction of the candidate word pool and its connectivity graph, and the
+breadth-first benchmark solver that publishes a deterministic shortest route
+for each puzzle.
+\end{abstract}
+
+\section{Introduction}
+
+A Sequence puzzle is a pair of words $(s, e)$. A player answers with a chain of
+connector words $c_1, \dots, c_k$, claiming that the sequence
+$s \to c_1 \to \dots \to c_k \to e$ moves between semantically connected words
+at every step. The engine verifies each adjacent link independently: there are
+no pre-programmed routes, no requirement that a link move ``toward'' the
+target, and no bound on chain length. Creative detours are legal; the score is
+simply $k$, the number of connectors, and fewer is better. The engine also
+solves each puzzle itself and publishes its shortest verified route as a
+benchmark that players may attempt to beat.
+
+\section{Embedding space and similarity}
+
+Words are represented by the pretrained \emph{word2vec-google-news-300}
+embeddings \cite{mikolov2013}, which assign each vocabulary entry $w$ a vector
+$v_w \in \mathbb{R}^{300}$. The engine retains the $500{,}000$ most frequent
+entries of the released model; beyond that point the vocabulary is dominated by
+rare phrase tokens. All comparisons use unit-normalized vectors
+\[
+  \hat{v}_w = \frac{v_w}{\lVert v_w \rVert_2},
+\]
+so that the similarity of two words is the cosine of the angle between their
+embeddings, computed as a single dot product:
+\begin{definition}[Connectivity]
+For words $a, b$ with embeddings in the model,
+\[
+  \cosim(a, b) = \hat{v}_a \cdot \hat{v}_b \in [-1, 1].
+\]
+\end{definition}
+Larger $\cosim$ means the words occur in more similar contexts in the training
+corpus (roughly $100$ billion words of news text), which is the engine's
+operational notion of ``word connectivity.''
+
+\section{The link predicate}
+
+A single link $(a, b)$ is \emph{verified} --- signed off with its similarity
+value --- exactly when it clears a calibrated threshold and is not a trivial
+variant pair, with one deliberate exception for multi-word entities.
+
+\begin{definition}[Verified link]
+\label{def:link}
+Let $\thresh$ be the acceptance threshold. The link $(a,b)$ verifies iff
+\[
+  \neg\,\mathrm{var}(a, b)
+  \;\wedge\;
+  \bigl( \cosim(a, b) \ge \thresh \;\vee\; \mathrm{colloc}(a, b) \bigr),
+\]
+where $\mathrm{var}$ and $\mathrm{colloc}$ are defined below. A link whose
+words are not both in the vocabulary is rejected outright.
+\end{definition}
+
+\paragraph{Inflection guard.}
+Without a guard, chains like \emph{rain} $\to$ \emph{rains} $\to$
+\emph{raining} would verify trivially, since inflected forms of a word are
+nearly parallel in embedding space. Let $S(w)$ be the set of plausible stems of
+$w$ produced by a deterministic suffix-stripping rule: casefold $w$, then for
+each suffix in the family
+$\{\text{-s}, \text{-es}, \text{-ed}, \text{-ing}, \text{-er}, \text{-est},
+\text{-ies}, \text{-ied}, \text{-ly}, \dots\}$
+whose removal leaves at least three characters, add the stripped stem, a
+doubled-consonant repair (\emph{running} $\to$ \emph{runn} $\to$ \emph{run}),
+and a \mbox{-ies $\to$ -y} repair (\emph{cities} $\to$ \emph{city}). Then
+\[
+  \mathrm{var}(a, b) \iff
+  a \equiv b \ \text{(casefolded)} \ \vee\ S(a) \cap S(b) \neq \emptyset .
+\]
+Variant pairs are rejected regardless of their cosine.
+
+\paragraph{Collocation rule.}
+Pop-culture pairings often live in the model as multi-word \emph{entity}
+tokens rather than in the single lowercase tokens: the plain tokens give
+$\cosim(\text{star}, \text{wars}) \approx 0.02$, far below any sensible
+threshold, yet \texttt{Star\_Wars} exists as its own vocabulary entry. The
+predicate
+\[
+  \mathrm{colloc}(a, b) \iff
+  \text{some cased joining of } a, b
+  \text{ (either order) is a vocabulary entry}
+\]
+therefore verifies such pairs as an alternative path, independent of their
+token-level cosine.
+
+\section{Threshold calibration}
+
+The threshold is not chosen a priori; it is measured. Fix a must-pass set $P$
+of word pairs that any reasonable player would accept as connected
+(\emph{rock--band}, \emph{apple--pie}, \emph{winter--snow}, \dots) and a
+must-fail set $F$ of pairs that no one would (\emph{carrot--algebra},
+\emph{tuba--vinegar}, \dots). All cosines are measured against the actual
+model, and $\thresh$ must separate the two sets with a margin $m$ on both
+sides:
+\[
+  \min_{(a,b) \in P} \cosim(a,b) \;\ge\; \thresh + m,
+  \qquad
+  \max_{(a,b) \in F} \cosim(a,b) \;\le\; \thresh - m .
+\]
+With $m = 0.015$ the calibrated value is
+\[
+  \boxed{\thresh = 0.19}.
+\]
+Pairs that verify only through the collocation rule are held in a separate
+calibration category exempt from the cosine inequality --- \emph{star--wars}
+is a must-pass pair, but at cosine $0.02$ it would make the two sets
+inseparable if forced through the threshold. Representative measurements:
+
+\begin{center}
+\begin{tabular}{llc}
+\toprule
+Pair & Role & $\cosim$ \\
+\midrule
+winter -- snow    & must pass                & $0.490$ \\
+money -- bank     & must pass                & $0.261$ \\
+rain -- cloud     & must pass (lowest)       & $0.210$ \\
+tuba -- vinegar   & must fail (highest)      & $0.160$ \\
+carrot -- algebra & must fail                & $0.103$ \\
+star -- wars      & collocation (exempt)     & $0.021$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section{The candidate pool and connectivity graph}
+
+Connector words must come from a canonical pool $P^\ast$ shared by players and
+the solver, so the published benchmark is achievable with exactly the moves
+players are allowed. The pool is built in two passes.
+
+\paragraph{Frequency filter.}
+Take the vocabulary in descending frequency order and keep entries matching
+\verb|^[a-z]{2,}$| (clean lowercase alphabetic words) that are not function
+words, until $50{,}000$ words are collected. Call this $P_0$.
+
+\paragraph{Hub suppression.}
+Generic words (\emph{thing}, \emph{good}, \dots) are close to nearly
+everything and would make every puzzle trivially solvable through them. Define
+the above-threshold degree of each word,
+\[
+  d(w) = \bigl|\{\, u \in P_0 \setminus \{w\} : \cosim(w, u) \ge \thresh \,\}\bigr|,
+\]
+computed exactly by blockwise products of the row-normalized pool matrix
+$M \in \mathbb{R}^{|P_0| \times 300}$ against $M^{\mathsf T}$. Words whose
+degree exceeds the $99$th percentile of the degree distribution are dropped:
+\[
+  P^\ast = \{\, w \in P_0 : d(w) \le \operatorname{percentile}_{99}(d) \,\}.
+\]
+A percentile cap is used rather than an absolute one because the degree
+distribution shifts wholesale with $\thresh$; at a permissive threshold nearly
+every word exceeds any fixed count.
+
+\paragraph{The graph.}
+The pool induces an undirected connectivity graph $G = (P^\ast, E)$ with
+\[
+  E = \bigl\{\, \{u, w\} : \cosim(u, w) \ge \thresh
+  \ \wedge\ \neg\,\mathrm{var}(u, w) \,\bigr\}.
+\]
+Empirically, at $\thresh = 0.19$ this graph is dense: the median word has
+approximately $2{,}520$ above-threshold neighbors. A direct consequence is
+that most valid puzzles admit a shortest route with a \emph{single}
+intermediate word --- a fact with design implications for a shortest-wins
+leaderboard, since ties at $k = 1$ will be common and a secondary criterion
+(Section~\ref{sec:solver}) is needed to order them.
+
+\section{Sequence verification}
+
+\begin{definition}[Verified sequence]
+For a puzzle $(s, e)$ and connectors $c_1, \dots, c_k$, write the chain
+$c_0 = s$, $c_{k+1} = e$. The sequence verifies iff
+\begin{enumerate}
+  \item every adjacent link $(c_i, c_{i+1})$, $0 \le i \le k$, verifies per
+        Definition~\ref{def:link};
+  \item every connector lies in the canonical pool: $c_i \in P^\ast$ for
+        $1 \le i \le k$ (endpoints need only be in the vocabulary);
+  \item the chain words are pairwise distinct (casefolded).
+\end{enumerate}
+The sequence's score is its length $k$; fewer connectors is better.
+\end{definition}
+Each link in the result carries its cosine and, when rejected, a machine-readable
+reason (\emph{below-threshold}, \emph{not-in-pool}, \emph{not-in-vocabulary},
+\emph{inflection-variant}, \emph{repeated-word}), so a failed submission
+identifies exactly which link broke.
+
+\section{The benchmark solver}
+\label{sec:solver}
+
+The published benchmark route is the shortest verified route through $G$,
+found by level-synchronous breadth-first search from $s$ with a hop limit
+$H = 8$. Each BFS level is one batched matrix operation: for a frontier of
+pool indices $F_t$, the similarities of all frontier words against the entire
+pool are the rows of $M_{F_t} M^{\mathsf T}$, and the next frontier is every
+unvisited, unblocked word whose similarity to some frontier word clears
+$\thresh$ (variant pairs excluded). Every shortest-depth parent of each
+discovered word is recorded, so all shortest paths can be enumerated by
+backtracking once any frontier word links to $e$.
+
+\paragraph{Cosine edges only.}
+The solver deliberately searches only threshold edges, never collocation
+edges. A player who spots a collocation shortcut (\emph{star} $\to$
+\emph{wars}) can therefore legitimately beat the published benchmark --- this
+asymmetry is intentional and funds the game's bounty mechanic.
+
+\paragraph{Determinism.}
+Among routes of minimal length $k^\ast$, the solver ranks by total link cosine
+\[
+  T(c_1, \dots, c_{k^\ast})
+  = \sum_{i=0}^{k^\ast} \cosim(c_i, c_{i+1}),
+\]
+descending, breaking remaining ties by lexicographic order of the connector
+tuple. The published route is thus identical across runs and machines. The
+total-cosine criterion doubles as the natural secondary leaderboard metric
+when many players tie at the minimal length.
+
+\section{Solution trees and puzzle validity}
+
+The top-$r$ shortest routes (all of length $k^\ast$) are merged into a
+\emph{solution tree} rooted at $s$: routes sharing a prefix share the
+corresponding path of nodes, every edge carries its signed-off link, and every
+root-to-leaf path is one of the routes, ending at $e$ and re-verifying as a
+sequence. The tree is the engine's certificate that the benchmark and its
+near-alternates are all legal play.
+
+Finally, a pair $(s, e)$ is a \emph{publishable puzzle} iff
+\begin{enumerate}
+  \item both $s$ and $e$ are in the vocabulary;
+  \item the pair is not trivially connected: $\cosim(s, e) < \thresh$, the
+        pair is not a collocation, and $\neg\,\mathrm{var}(s, e)$;
+  \item at least one verified route exists within $H$ hops.
+\end{enumerate}
+Condition 2 rules out puzzles solvable with zero connectors; condition 3 rules
+out unsolvable ones. Each seed puzzle shipped with the engine passes this
+gate against the real model.
+
+\begin{thebibliography}{1}
+\bibitem{mikolov2013}
+T.~Mikolov, I.~Sutskever, K.~Chen, G.~Corrado, and J.~Dean.
+\newblock Distributed representations of words and phrases and their
+  compositionality.
+\newblock In \emph{Advances in Neural Information Processing Systems~26},
+  2013.
+\end{thebibliography}
+
+\end{document}
