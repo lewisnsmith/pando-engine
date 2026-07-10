@@ -6,8 +6,8 @@
 \usepackage{booktabs}
 \usepackage[hidelinks]{hyperref}
 
+\theoremstyle{definition}
 \newtheorem{definition}{Definition}
-\newtheorem{proposition}{Proposition}
 
 \newcommand{\cosim}{\sigma}
 \newcommand{\thresh}{\tau}
@@ -104,13 +104,13 @@ Variant pairs are rejected regardless of their cosine.
 Pop-culture pairings often live in the model as multi-word \emph{entity}
 tokens rather than in the single lowercase tokens: the plain tokens give
 $\cosim(\text{star}, \text{wars}) \approx 0.02$, far below any sensible
-threshold, yet \texttt{Star\_Wars} exists as its own vocabulary entry. The
-predicate
-\[
+threshold, yet the entity \texttt{Star\_Wars} exists as its own vocabulary
+entry. The predicate
+\begin{gather*}
   \mathrm{colloc}(a, b) \iff
-  \text{some cased joining of } a, b
-  \text{ (either order) is a vocabulary entry}
-\]
+  \text{some cased joining of $a, b$ (either order)} \\
+  \text{is a vocabulary entry.}
+\end{gather*}
 therefore verifies such pairs as an alternative path, independent of their
 token-level cosine.
 
@@ -196,8 +196,8 @@ leaderboard, since ties at $k = 1$ will be common and a secondary criterion
 \section{Sequence verification}
 
 \begin{definition}[Verified sequence]
-For a puzzle $(s, e)$ and connectors $c_1, \dots, c_k$, write the chain
-$c_0 = s$, $c_{k+1} = e$. The sequence verifies iff
+Take a puzzle $(s, e)$ with connectors $c_1, \dots, c_k$, and set $c_0 = s$
+and $c_{k+1} = e$. The sequence verifies iff
 \begin{enumerate}
   \item every adjacent link $(c_i, c_{i+1})$, $0 \le i \le k$, verifies per
         Definition~\ref{def:link};
