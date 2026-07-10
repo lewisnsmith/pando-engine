@@ -1,8 +1,8 @@
-# Sequence
+# Pando
 
-## What Sequence is
+## What Pando is
 
-Sequence is a word-chain game. Each puzzle gives two words — a start and an
+Pando is a word-chain game. Each puzzle gives two words — a start and an
 end, e.g. `rain → business` — and the player's job is to connect them with a
 chain of words where each step makes sense.
 
@@ -29,7 +29,7 @@ operations: `verify_sequence`, `shortest_route`, `build_solution_tree`, and
 
 ## The weekly game loop
 
-Each week we publish one puzzle: a "sequence of the week" start/end pair.
+Each week we publish one puzzle: a "Pando of the week" start/end pair.
 
 Players submit their own chain, freely. The verification engine checks it
 link by link and either signs off on the whole thing or rejects it with a

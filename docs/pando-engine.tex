@@ -6,24 +6,24 @@
 \usepackage{booktabs}
 \usepackage[hidelinks]{hyperref}
 
-\theoremstyle{definition}
 \newtheorem{definition}{Definition}
+\newtheorem{proposition}{Proposition}
 
 \newcommand{\cosim}{\sigma}
 \newcommand{\thresh}{\tau}
 
-\title{The Mathematics of the Sequence Connectivity Engine}
-\author{Sequence}
-\date{July 2026}
+\title{The Mathematics of the Pando Connectivity Engine}
+\author{Pando}
+\date{July 9, 2026}
 
 \begin{document}
 
 \maketitle
 
 \begin{abstract}
-Sequence is a word game: connect a start word to an end word through a chain of
+Pando is a word game: connect a start word to an end word through a chain of
 intermediate words, where every adjacent pair must be semantically related, and
-the shortest verified chain wins. This note formalizes the mathematics behind
+the shortest verified chain wins (tops the leader board). This note formalizes the mathematics behind
 the verification engine: the embedding space and similarity measure, the link
 verification predicate, the empirical calibration of the acceptance threshold,
 the construction of the candidate word pool and its connectivity graph, and the
@@ -33,7 +33,8 @@ for each puzzle.
 
 \section{Introduction}
 
-A Sequence puzzle is a pair of words $(s, e)$. A player answers with a chain of
+A Pando puzzle is a pair of words $(s, e)$, with a starting word $s$ 
+and a target, ending word $e$. A player answers with a chain of
 connector words $c_1, \dots, c_k$, claiming that the sequence
 $s \to c_1 \to \dots \to c_k \to e$ moves between semantically connected words
 at every step. The engine verifies each adjacent link independently: there are
@@ -41,7 +42,7 @@ no pre-programmed routes, no requirement that a link move ``toward'' the
 target, and no bound on chain length. Creative detours are legal; the score is
 simply $k$, the number of connectors, and fewer is better. The engine also
 solves each puzzle itself and publishes its shortest verified route as a
-benchmark that players may attempt to beat.
+benchmark that players may attempt to beat. 
 
 \section{Embedding space and similarity}
 
@@ -104,19 +105,19 @@ Variant pairs are rejected regardless of their cosine.
 Pop-culture pairings often live in the model as multi-word \emph{entity}
 tokens rather than in the single lowercase tokens: the plain tokens give
 $\cosim(\text{star}, \text{wars}) \approx 0.02$, far below any sensible
-threshold, yet the entity \texttt{Star\_Wars} exists as its own vocabulary
-entry. The predicate
-\begin{gather*}
+threshold, yet \texttt{Star\_Wars} exists as its own vocabulary entry. The
+predicate
+\[
   \mathrm{colloc}(a, b) \iff
-  \text{some cased joining of $a, b$ (either order)} \\
-  \text{is a vocabulary entry.}
-\end{gather*}
+  \text{some cased joining of } a, b
+  \text{ (either order) is a vocabulary entry}
+\]
 therefore verifies such pairs as an alternative path, independent of their
 token-level cosine.
 
 \section{Threshold calibration}
 
-The threshold is not chosen a priori; it is measured. Fix a must-pass set $P$
+The threshold is measured instead of chosen a priori. Fix a must-pass set $P$
 of word pairs that any reasonable player would accept as connected
 (\emph{rock--band}, \emph{apple--pie}, \emph{winter--snow}, \dots) and a
 must-fail set $F$ of pairs that no one would (\emph{carrot--algebra},
@@ -196,8 +197,8 @@ leaderboard, since ties at $k = 1$ will be common and a secondary criterion
 \section{Sequence verification}
 
 \begin{definition}[Verified sequence]
-Take a puzzle $(s, e)$ with connectors $c_1, \dots, c_k$, and set $c_0 = s$
-and $c_{k+1} = e$. The sequence verifies iff
+For a puzzle $(s, e)$ and connectors $c_1, \dots, c_k$, write the chain
+$c_0 = s$, $c_{k+1} = e$. The sequence verifies iff
 \begin{enumerate}
   \item every adjacent link $(c_i, c_{i+1})$, $0 \le i \le k$, verifies per
         Definition~\ref{def:link};

@@ -1,4 +1,4 @@
-"""Word-connectivity verification engine for Sequence.
+"""Word-connectivity verification engine for Pando.
 
 Words connect when the cosine similarity of their pretrained word2vec vectors
 (word2vec-google-news-300) clears a calibrated threshold. A player sequence of
