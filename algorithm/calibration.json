@@ -1,0 +1,44 @@
+{
+  "threshold": 0.19,
+  "must_pass": [
+    ["rock", "band"],
+    ["apple", "pie"],
+    ["space", "rocket"],
+    ["wizard", "spell"],
+    ["vampire", "blood"],
+    ["guitar", "band"],
+    ["pizza", "cheese"],
+    ["robot", "machine"],
+    ["zombie", "apocalypse"],
+    ["superhero", "villain"],
+    ["meme", "internet"],
+    ["rain", "cloud"],
+    ["seed", "plant"],
+    ["book", "page"],
+    ["fire", "smoke"],
+    ["money", "bank"],
+    ["ocean", "wave"],
+    ["winter", "snow"],
+    ["coffee", "caffeine"],
+    ["doctor", "hospital"],
+    ["music", "song"]
+  ],
+  "must_pass_collocations": [
+    ["star", "wars"],
+    ["dark", "knight"]
+  ],
+  "must_fail": [
+    ["carrot", "algebra"],
+    ["spoon", "galaxy"],
+    ["cactus", "keyboard"],
+    ["umbrella", "arithmetic"],
+    ["giraffe", "spreadsheet"],
+    ["pancake", "senate"],
+    ["volcano", "necktie"],
+    ["walrus", "mortgage"],
+    ["harp", "gasoline"],
+    ["mitten", "geology"],
+    ["tuba", "vinegar"],
+    ["lettuce", "trombone"]
+  ]
+}
