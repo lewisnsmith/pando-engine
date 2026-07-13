@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Pando is a game about connecting two unlikely words.">
+    <title>Pando</title>
+    <link rel="stylesheet" href="/styles.css">
+    <script src="/app.js" defer></script>
+  </head>
+  <body>
+    <main class="game-shell">
+      <header class="site-header">
+        <h1>Pando</h1>
+        <button
+          class="help-toggle"
+          id="help-toggle"
+          type="button"
+          aria-label="How to play"
+          aria-expanded="false"
+          aria-controls="help-panel"
+        >?</button>
+      </header>
+
+      <aside class="help-panel" id="help-panel" hidden>
+        <h2>How to play</h2>
+        <p>Connect the start to the target one word at a time. Every submitted word must form a verified connection with the word before it.</p>
+      </aside>
+
+      <section class="game" aria-label="Current puzzle">
+        <h2 class="sr-only">Your word chain</h2>
+        <ol class="chain" id="chain" aria-label="Your current word chain"></ol>
+
+        <form class="word-form" id="word-form" novalidate>
+          <label class="sr-only" for="word-input">Next word</label>
+          <div class="input-row">
+            <input
+              id="word-input"
+              name="word"
+              type="text"
+              autocomplete="off"
+              spellcheck="false"
+              maxlength="100"
+              placeholder="Enter the next word"
+            >
+            <button class="submit-button" id="submit-word" type="submit">Submit</button>
+          </div>
+        </form>
+
+        <p class="game-status" id="game-status" role="status" aria-live="polite">Loading…</p>
+        <button class="next-pair" id="next-pair" type="button" hidden>Next pair</button>
+      </section>
+    </main>
+  </body>
+</html>
