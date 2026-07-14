@@ -73,12 +73,23 @@ class GameStore:
         self,
         database: str | Path = ":memory:",
         verifier: Optional[Verifier] = None,
+        initialize_schema: bool = True,
     ) -> None:
-        self._connection = sqlite3.connect(str(database))
+        database_name = str(database)
+        if database_name != ":memory:":
+            Path(database_name).expanduser().resolve().parent.mkdir(
+                parents=True, exist_ok=True
+            )
+        self._connection = sqlite3.connect(database_name, timeout=5)
         self._connection.row_factory = sqlite3.Row
+        self._connection.execute("PRAGMA busy_timeout = 5000")
         self._connection.execute("PRAGMA foreign_keys = ON")
+        if database_name != ":memory:":
+            self._connection.execute("PRAGMA journal_mode = WAL")
+            self._connection.execute("PRAGMA synchronous = NORMAL")
         self._verifier = verifier if verifier is not None else _verify_sequence
-        self._create_schema()
+        if initialize_schema:
+            self._create_schema()
 
     def close(self) -> None:
         self._connection.close()
