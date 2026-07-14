@@ -68,15 +68,27 @@ rather than degenerate:
   shortest route has to be a genuine discovery, not a trick everyone
   already knows.
 
+## Game state and persistence
+
+The game-state layer also lives in `algorithm/`, next to the verifier but
+separate from the player-facing website. `game_store.py` uses SQLite to retain
+every verified sequence a player submits, track the player's shortest sequence
+for each puzzle, and build a global leaderboard from one personal-best entry
+per player. Connector words are the score; the fixed start and end words are
+not counted.
+
+In-progress sequences are stored separately from submitted sequences. A player
+can replace or clear the current draft for a puzzle without affecting saved
+history, personal bests, or leaderboard placement. The eventual website should
+call this backend API rather than own these rules in browser code.
+
 ## Where the project is now, and what's next
 
-The verification engine exists and works: `verify_sequence`,
-`shortest_route`, `build_solution_tree`, and `is_valid_puzzle` are all
-implemented in `algorithm/`. An earlier browser prototype was removed once
-it had served its purpose of proving the concept.
+The verification engine and SQLite-backed game state exist in `algorithm/`.
+An earlier browser prototype was removed once it had served its purpose of
+proving the concept.
 
 What's left is the part players will actually touch: a player-facing client
-for submitting and exploring sequences, and a leaderboard backend to store
-puzzles, submissions, and bounty claims. The hard problem — deciding
-whether a link is real — is solved. The remaining work is building the game
-around it.
+and a service/API boundary around the game store, plus persistence for weekly
+puzzle publication and bounty claims. The hard problem — deciding whether a
+link is real — and the core scoring/history rules now live outside the UI.
