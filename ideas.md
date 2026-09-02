@@ -56,6 +56,77 @@ Evaluation should include cultural references absent from the development set,
 ordinary multiword entities, ambiguous names, and unrelated pairs that happen
 to form a model token.
 
+## Model replacement and collocation research
+
+The Google News Word2Vec artifact should remain a versioned baseline while
+candidate models are evaluated. Replacing it changes every cosine, pool edge,
+hub degree, route, and acceptance threshold. A replacement therefore requires
+a new model identifier, connector pool, calibration result, and compatibility
+decision.
+
+Three model tracks merit comparison:
+
+1. Train a new static Word2Vec model on a dated, licensed corpus. Include a
+   current Wikipedia export and other sources that cover contemporary language.
+   Record corpus sources, snapshot dates, preprocessing, hyperparameters,
+   random seeds, software versions, and artifact hashes.
+2. Evaluate fastText as an alternative static model. Its subword vectors can
+   represent vocabulary items absent from the training corpus, but spelling
+   similarity may produce links that conflict with the game rule. Evaluate
+   semantic quality, proper nouns, misspellings, and inflection behavior
+   separately.
+3. Train a phrase-aware model. Detect multiword expressions before Word2Vec
+   training so the corpus contains stable phrase tokens. Phrase detection must
+   use a general corpus statistic, such as normalized pointwise mutual
+   information, rather than a repository list of accepted names.
+
+A phrase token alone does not define the connection between its component
+words. Collocation handling should retain two independent measurements:
+
+$$
+  \operatorname{semantic}(a,b)=\cos(v_a,v_b)
+$$
+
+and
+
+$$
+  \operatorname{association}(a,b)=\operatorname{NPMI}(a,b).
+$$
+
+Cosine estimates distributional similarity. Normalized pointwise mutual
+information estimates whether the words occur together more often than their
+individual frequencies predict. A calibrated classifier or explicit formula
+could combine both measurements after evaluation against held-out human link
+judgments. The engine should return both component scores so acceptance remains
+inspectable.
+
+The first experiment should compare these candidates against the existing
+engine on one frozen evaluation set:
+
+- The existing Google News Word2Vec model.
+- A newly trained Word2Vec model without phrase detection.
+- The same corpus and settings with phrase detection.
+- A fastText model trained on the same corpus.
+- A two-signal scorer using cosine and normalized pointwise mutual information.
+
+The evaluation set should separate semantic similarity, direct association,
+named entities, cultural references, unrelated pairs, morphology, spelling
+similarity, and words absent from one or more model vocabularies. Model
+selection should use held-out results rather than examples used to choose the
+method.
+
+Primary references:
+
+- [Distributed Representations of Words and Phrases and Their
+  Compositionality](https://proceedings.neurips.cc/paper/2013/hash/9aa42b31882ec039965f3c4923ce901b-Abstract.html)
+  defines phrase-aware Skip-gram training.
+- [Gensim phrase detection](https://radimrehurek.com/gensim/models/phrases.html)
+  supports count-based and normalized pointwise mutual information scoring.
+- [fastText word representations](https://fasttext.cc/docs/en/unsupervised-tutorial.html)
+  describes subword-based static embeddings and out-of-vocabulary vectors.
+- [Wikimedia data exports](https://dumps.wikimedia.org/) provide dated public
+  corpus snapshots.
+
 ## Connector policies
 
 The core engine currently treats inflection rejection, stop-word exclusion,
